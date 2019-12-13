@@ -213,8 +213,9 @@ run_single_experiment () {
     DECPARMS+=(--no-display -o "${outraw}")
 
   elif [ "${codec}" = "x264" ]; then
-    ENCPARMS+=(-c:v libx264 -b:v "${bitrate}k" -minrate "${bitrate}k")
-    ENCPARMS+=(-maxrate "${bitrate}k" -bufsize 4M)
+    ENCPARMS+=(-c:v libx264)
+    ENCPARMS+=(-maxrate "${bitrate}k" -minrate "${bitrate}k" -b:v "${bitrate}k")
+    ENCPARMS+=(-bufsize 4M)
     ENCPARMS+=(-s "${resolution}" -g 600)
     DECPARMS+=(-y "${outraw}")
   fi

@@ -25,6 +25,7 @@ declare -a CODECS
 CODECS=(
     "lcevc-x264"
     "x264"
+    "vp8"
 )
 
 declare -a RESOLUTIONS
@@ -216,6 +217,13 @@ run_single_experiment () {
     ENCPARMS+=(-c:v libx264)
     ENCPARMS+=(-maxrate "${bitrate}k" -minrate "${bitrate}k" -b:v "${bitrate}k")
     ENCPARMS+=(-bufsize 4M)
+    ENCPARMS+=(-s "${resolution}" -g 600)
+    DECPARMS+=(-y "${outraw}")
+
+  elif [ "${codec}" = "vp8" ]; then
+    ENCPARMS+=(-c:v libvpx)
+    ENCPARMS+=(-maxrate "${bitrate}k" -minrate "${bitrate}k" -b:v "${bitrate}k")
+    ENCPARMS+=(-quality realtime -qmin 2 -qmax 56)
     ENCPARMS+=(-s "${resolution}" -g 600)
     DECPARMS+=(-y "${outraw}")
   fi

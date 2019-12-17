@@ -18,7 +18,7 @@ The tool that runs the experiments is called `rdtest.py`. In order to run it, fi
 Run a simple encoder test:
 
 ```
-$ ./rdtest.py /tmp/input.mp4 /tmp/results.txt --tmpdir /tmp/rdtest_tmp --codecs "x264" --resolutions "216x120" --bitrates "35" --rcmodes "cbr" -d
+$ ./rdtest.py /tmp/input.mp4 /tmp/results.txt --tmp-dir /tmp/rdtest_tmp --codecs "x264" --resolutions "216x120" --bitrates "35" --rcmodes "cbr" -d
 ```
 
 Notes:

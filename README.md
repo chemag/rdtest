@@ -13,12 +13,12 @@ We want to characterize the rate-distortion curve for a set of video encoders. T
 # 2. Operation
 
 ## 2.1. Data Gathering
-The tool that runs the experiments is called `rdtest.sh`. In order to run it, first you need to find a reference file that will be used to test the encoder.
+The tool that runs the experiments is called `rdtest.py`. In order to run it, first you need to find a reference file that will be used to test the encoder.
 
 Run a simple encoder test:
 
 ```
-$ ./rdtest.sh /tmp/input.mp4 /tmp/results.txt --tmpdir /tmp/rdtest_tmp --resolutions "216x120" --bitrates "35" --rcmodes "cbr" -d
+$ ./rdtest.py /tmp/input.mp4 /tmp/results.txt --tmpdir /tmp/rdtest_tmp --codecs "x264" --resolutions "216x120" --bitrates "35" --rcmodes "cbr" -d
 ```
 
 Notes:
@@ -32,7 +32,7 @@ Notes:
 Once you are happy with the results, run the full experiment.
 
 ```
-$ ./rdtest.sh /tmp/input.mp4 /tmp/results.txt --tmpdir /tmp/rdtest_tmp
+$ LCEVC_ENC_DIR=<dir_containing_lcevc_enc> LCEVC_DEC_DIR=<dir_containing_lcevc_dec> LCEVC_DECODER=<name_of_lcevc_dec> VMAF_DIR=<vmaf_dir> ./rdtest.py input.mp4 --tmp-dir /tmp/rdtest_py_tmp -ddd /tmp/results.txt
 ```
 
 The results are dumped to a text file, which contains a CSV collection of encoding parameters and video quality results (PSNR, SSIM, and VMAF).
@@ -40,14 +40,12 @@ The results are dumped to a text file, which contains a CSV collection of encodi
 ```
 $ cat /tmp/results.txt
 # in_filename,codec,resolution,rcmode,bitrate,actual_bitrate,psnr,ssim,vmaf
-input.mp4,lcevc-x264,1280x720,cbr,2500,2973,36.518814,0.971159,94.448697
-input.mp4,lcevc-x264,1280x720,cbr,1000,1265,35.216348,0.962273,91.528012
-input.mp4,lcevc-x264,1280x720,cbr,280,357,33.397083,0.941782,80.188933
-input.mp4,lcevc-x264,1280x720,cbr,560,711,34.476834,0.954649,87.839567
-input.mp4,lcevc-x264,1280x720,cbr,140,174,31.808458,0.922022,66.581716
+input.mp4,lcevc-x264,1280x720,cbr,2500,2482.388411876516,36.289466,0.969651,93.990081
+input.mp4,lcevc-x264,1280x720,cbr,1000,1071.2853116602216,34.985670,0.960191,90.600757
+input.mp4,lcevc-x264,1280x720,cbr,560,605.5676738546241,34.229312,0.951959,86.328370
+input.mp4,lcevc-x264,1280x720,cbr,280,305.3348626859802,33.100183,0.938104,77.790853
+input.mp4,lcevc-x264,1280x720,cbr,140,148.407812807236,31.355631,0.915891,62.140263
 ...
-input.mp4,x264,216x120,cbr,70,92,27.633973,0.856106,14.204752
-input.mp4,x264,216x120,cbr,35,50,27.219975,0.845131,7.861652
 ```
 
 ## 2.2. Data Plotting
@@ -102,7 +100,7 @@ $ sudo make install
 Notes:
 
 * replace the `includedir` variable in `/usr/local/lib64/pkgconfig/libvmaf.pc` with `includedir=${prefix}/include/libvmaf`, and then build `ffmpeg` from source.
-* if you decide to install it in a different place, use the `--vmaf-dir` CLI option to let `rdtest.sh` know about the location
+* if you decide to install it in a different place, use the `--vmaf-dir` CLI option to let `rdtest.py` know about the location
 
 
 Now build ffmpeg from the source with support for the library.

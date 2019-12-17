@@ -25,6 +25,7 @@ PLOT_NAMES = {
 COLORS = {
     'x264': 'blue',
     'lcevc-x264': 'skyblue',
+    'vp8': 'orange',
 }
 
 

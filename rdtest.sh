@@ -14,11 +14,11 @@
 
 
 # tool configuration
-LCEVC_ENC_DIR=""
+LCEVC_ENC_DIR=${LCEVC_ENC_DIR:-""}
 LCEVC_ENCODER="${LCEVC_ENC_DIR}/ffmpeg"
-LCEVC_DEC_DIR=""
+LCEVC_DEC_DIR=${LCEVC_DEC_DIR:-""}
 LCEVC_DECODER="${LCEVC_DEC_DIR}/PPlusDec2Ref"
-VMAF_DIR="${HOME}/proj/vmaf"
+VMAF_DIR=${VMAF_DIR:=""}
 
 
 declare -a CODECS
@@ -68,7 +68,7 @@ RCMODES=(
     "cfr"
 )
 
-# TODO(chemag): fix lcevc-x264 CFR mode parameters
+# TODO(jblome): fix lcevc-x264 CFR mode parameters
 RCMODES=(
     "cbr"
 )
@@ -199,7 +199,7 @@ run_single_experiment () {
     ENCTOOL="${LCEVC_ENCODER}"
     ENCPARMS+=(-c:v pplusenc_x264 -base_encoder x264)
     if [ "${rcmode}" = "cbr" ]; then
-      local mode="bitrate=${bitrate};rc_pcrf_base_rc_mode=${rcmode};"
+      local mode="bitrate=${bitrate}\\;rc_pcrf_base_rc_mode=${rcmode}\\;"
     elif [ "${rcmode}" = "cfr" ]; then
       # TODO(jblome): fix lcevc-x264 CFR mode parameters
       echo "# error: cfr needs better parameters"
@@ -297,6 +297,7 @@ run_lcevc_experiment () {
   if [[ ! -r "${refraw}" ]]; then
     if [ "${debug}" -gt 0 ]; then
       echo "# generating raw reference: ${refraw}"
+      echo "ffmpeg -y -i ${input} -f rawvideo -s ${refres} -pix_fmt ${refpix_fmt} ${refraw}"
     fi
     ffmpeg -y -i "${input}" \
         -f rawvideo -s "${refres}" -pix_fmt "${refpix_fmt}" "${refraw}" \

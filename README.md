@@ -18,13 +18,17 @@ The tool that runs the experiments is called `rdtest.py`. In order to run it, fi
 Run a simple encoder test:
 
 ```
-$ ./rdtest.py /tmp/input.mp4 /tmp/results.txt --tmp-dir /tmp/rdtest_tmp --codecs "x264" --resolutions "216x120" --bitrates "35" --rcmodes "cbr" -d
+$ ./rdtest.py /tmp/input.mp4 /tmp/results.txt --tmp-dir /tmp/rdtest_tmp --codecs x264 vp8 --resolutions "216x120" --bitrates "35" --rcmodes "cbr" -d
 ```
 
 Notes:
 
-* test will run all the defined codecs, for a single resolution (216x120), a single bitrate (35 kbps), and a single rate control model (CBR),
-* defined codecs so far are vp8, vanilla x264, and lcevc-x264,
+* test will run the 2 specified codecs (x264 and vp8), for a single resolution (216x120), a single bitrate (35 kbps), and a single rate control model (CBR),
+* for any of the 4 setting fields (`codecs`, `resolutions`, `bitrates`, and `rcmodes`), you can set multiple values by using 3 different syntaxes:
+  * (1) '`--<setting> val1 val2 val3`'
+  * (2) '`--<setting> "val1 val2 val3"`'
+  * (3) '`--<setting> val1,val2,val3`'
+* defined codecs so far are `vp8`, (vanilla) `x264`, and `lcevc-x264` (which requires an external codec),
 * "-d" forces debug mode (useful to test the script).
 * the test requires a VMAF distribution, either a separate one (slower), or an ffmpeg binary that supports VMAF (faster).
 

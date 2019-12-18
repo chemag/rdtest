@@ -548,6 +548,31 @@ def get_options(argv):
                         help='results file',)
     # do the parsing
     options = parser.parse_args(argv[1:])
+    # post-process list-based arguments
+    # support ',' and ' ' to separate list-based options
+    for field in ('codecs', 'resolutions', 'bitrates', 'rcmodes'):
+        for sep in (',', ' '):
+            if (len(vars(options)[field]) == 1 and
+                    sep in vars(options)[field][0]):
+                vars(options)[field] = vars(options)[field][0].split(sep)
+    # check valid values in options.codecs
+    if not all(c in CODEC_INFO.keys() for c in options.codecs):
+        print('# error: invalid codecs: %r supported_codecs: %r' % (
+              options.codecs, list(CODEC_INFO.keys())))
+        sys.exit(-1)
+    # check valid values in options.resolutions
+    if not all('x' in r for r in options.resolutions):
+        print('# error: invalid resolutions: %r' % (options.resolutions))
+        sys.exit(-1)
+    # check valid values in options.bitrates
+    if not all(b.isnumeric() for b in options.bitrates):
+        print('# error: invalid bitrates: %r' % (options.bitrates))
+        sys.exit(-1)
+    # check valid values in options.rcmodes
+    if not all(r in RCMODES for r in options.rcmodes):
+        print('# error: invalid rcmodes: %r supported_rcmodes: %r' % (
+              options.rcmodes, RCMODES))
+        sys.exit(-1)
     return options
 
 

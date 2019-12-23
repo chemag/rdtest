@@ -354,7 +354,8 @@ def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
     if codec == 'lcevc-x264':
         if 'LCEVC_ENC_DIR' in os.environ:
             lcevc_enc_dir = os.environ['LCEVC_ENC_DIR']
-            enc_tool = os.path.join(lcevc_enc_dir, 'ffmpeg')
+            enc_tool = os.path.join(lcevc_enc_dir,
+                                    os.environ.get('LCEVC_ENCODER', 'ffmpeg'))
             enc_env = {
                 'LD_LIBRARY_PATH': '%s:%s' % (lcevc_enc_dir,
                                               os.environ['LD_LIBRARY_PATH']),
@@ -403,17 +404,16 @@ def run_single_dec(infile, outfile, codec, debug):
     dec_parms = ['-i', infile]
     dec_env = None
     if codec == 'lcevc-x264':
-        assert 'LCEVC_DECODER' in os.environ, 'error: need LCEVC_DECODER'
-        lcevc_dec_dir = os.environ['LCEVC_DEC_DIR']
-        assert 'LCEVC_DEC_DIR' in os.environ, 'error: need LCEVC_DEC_DIR'
-        dec_tool = os.path.join(lcevc_dec_dir, os.environ['LCEVC_DECODER'])
+        dec_env = {}
+        if 'LCEVC_DEC_DIR' in os.environ:
+            lcevc_dec_dir = os.environ['LCEVC_DEC_DIR']
+            dec_tool = os.path.join(lcevc_dec_dir,
+                                    os.environ.get('LCEVC_DECODER', 'ffmpeg'))
+            dec_env['LD_LIBRARY_PATH'] = '%s:%s' % (
+                    lcevc_dec_dir, os.environ['LD_LIBRARY_PATH'])
         dec_parms += ['--no-display', '-o', outfile]
-        dec_env = {
-            'LD_LIBRARY_PATH': '%s:%s' % (lcevc_dec_dir,
-                                          os.environ['LD_LIBRARY_PATH']),
-            # perseus decoder requires X context
-            'DISPLAY': ':0',
-        }
+        # perseus decoder requires X context
+        dec_env['DISPLAY'] = ':0'
     elif codec == 'x264':
         dec_parms += ['-y', outfile]
     elif codec == 'vp8':

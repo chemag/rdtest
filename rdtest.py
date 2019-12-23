@@ -565,7 +565,8 @@ def get_options(argv):
         print('# error: invalid resolutions: %r' % (options.resolutions))
         sys.exit(-1)
     # check valid values in options.bitrates
-    if not all(b.isnumeric() for b in options.bitrates):
+    if not all((isinstance(b, int) or b.isnumeric()) for b in
+               options.bitrates):
         print('# error: invalid bitrates: %r' % (options.bitrates))
         sys.exit(-1)
     # check valid values in options.rcmodes

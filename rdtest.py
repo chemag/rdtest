@@ -362,7 +362,12 @@ def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
             }
         enc_parms += ['-c:v', 'pplusenc_x264', '-base_encoder', 'x264']
         if rcmode == 'cbr':
-            mode = 'bitrate=%s;rc_pcrf_base_rc_mode=%s;' % (bitrate, rcmode)
+            mode = 'bitrate=%s;' % bitrate
+            mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
+            # internal setting (best setting for low resolutions)
+            mode += 'rc_pcrf_sw_loq1=32768;'
+            # GoP length (default is 2x fps)
+            mode += 'rc_pcrf_gop_length=600;'
         elif rcmode == 'cfr':
             # TODO(jblome): fix lcevc-x264 CFR mode parameters
             AssertionError('# error: cfr needs better parameters')

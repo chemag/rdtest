@@ -74,6 +74,7 @@ default_values = {
     'ref_pix_fmt': 'yuv420p',
     'vmaf_dir': '/tmp/',
     'tmp_dir': '/tmp/',
+    'gop_length_frames': 600,
     'codecs': CODEC_INFO.keys(),
     'resolutions': RESOLUTIONS,
     'bitrates': BITRATES,
@@ -248,6 +249,7 @@ def run_experiment(options):
                         ref_filename, ref_resolution, ref_pix_fmt,
                         ref_framerate,
                         codec, resolution, bitrate, rcmode,
+                        options.gop_length_frames,
                         options.tmp_dir, options.debug)
                     fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
                         in_basename, codec, resolution, rcmode, bitrate,
@@ -340,7 +342,8 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
 
 
 def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
-                   outfile, codec, resolution, bitrate, rcmode, debug):
+                   outfile, codec, resolution, bitrate, rcmode,
+                   gop_length_frames, debug):
     if debug > 0:
         print('# [%s] encoding file: %s -> %s' % (codec, in_filename, outfile))
 
@@ -367,28 +370,28 @@ def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
             # internal setting (best setting for low resolutions)
             mode += 'rc_pcrf_sw_loq1=32768;'
             # GoP length (default is 2x fps)
-            mode += 'rc_pcrf_gop_length=600;'
+            mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
         elif rcmode == 'cfr':
             # TODO(jblome): fix lcevc-x264 CFR mode parameters
             AssertionError('# error: cfr needs better parameters')
         else:
             AssertionError('# error unsupported rcmode: %s' % rcmode)
         enc_parms += ['-eil_params', mode]
-        enc_parms += ['-s', resolution, '-g', '600']
+        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
     elif codec == 'x264':
         enc_parms += ['-c:v', 'libx264']
         enc_parms += ['-maxrate', '%sk' % bitrate]
         enc_parms += ['-minrate', '%sk' % bitrate]
         enc_parms += ['-b:v', '%sk' % bitrate]
         enc_parms += ['-bufsize', '4M']
-        enc_parms += ['-s', resolution, '-g', '600']
+        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
     elif codec == 'vp8':
         enc_parms += ['-c:v', 'libvpx']
         enc_parms += ['-maxrate', '%sk' % bitrate]
         enc_parms += ['-minrate', '%sk' % bitrate]
         enc_parms += ['-b:v', '%sk' % bitrate]
         enc_parms += ['-quality', 'realtime', '-qmin', '2', '-qmax', '56']
-        enc_parms += ['-s', resolution, '-g', '600']
+        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
 
     # pass audio through
     enc_parms += ['-c:a', 'copy']
@@ -433,7 +436,7 @@ def run_single_dec(infile, outfile, codec, debug):
 def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
                           ref_framerate,
                           codec, resolution, bitrate, rcmode,
-                          tmp_dir, debug):
+                          gop_length_frames, tmp_dir, debug):
     if debug > 0:
         print('# [run] run_single_experiment codec: %s resolution: %s '
               'bitrate: %s rmcode: %s' % (codec, resolution, bitrate, rcmode))
@@ -450,7 +453,8 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     enc_basename = gen_basename + CODEC_INFO[codec]['extension']
     enc_filename = os.path.join(tmp_dir, enc_basename)
     run_single_enc(ref_filename, ref_resolution, ref_pix_fmt, ref_framerate,
-                   enc_filename, codec, resolution, bitrate, rcmode, debug)
+                   enc_filename, codec, resolution, bitrate, rcmode,
+                   gop_length_frames, debug)
 
     # 4. dec: decode copy in order to get statistics
     dec_basename = enc_basename + '.yuv'
@@ -526,6 +530,10 @@ def get_options(argv):
     parser.add_argument('--tmp-dir', action='store',
                         dest='tmp_dir', default=default_values['tmp_dir'],
                         help='use TMP_DIR tmp dir',)
+    parser.add_argument('--gop-length', action='store',
+                        dest='gop_length_frames',
+                        default=default_values['gop_length_frames'],
+                        help='GoP length (in frames)',)
     parser.add_argument('--vmaf-dir', action='store',
                         dest='vmaf_dir', default=default_values['vmaf_dir'],
                         help='use VMAF_DIR vmaf dir',)

@@ -419,7 +419,10 @@ def run_single_dec(infile, outfile, codec, debug):
                                     os.environ.get('LCEVC_DECODER', 'ffmpeg'))
             dec_env['LD_LIBRARY_PATH'] = '%s:%s' % (
                     lcevc_dec_dir, os.environ['LD_LIBRARY_PATH'])
-        dec_parms += ['--no-display', '-o', outfile]
+        if 'PPlusDec2Ref' in dec_tool:
+            dec_parms += ['--no-display', '-o', outfile]
+        else:
+            dec_parms += ['-y', outfile]
         # perseus decoder requires X context
         dec_env['DISPLAY'] = ':0'
     elif codec == 'x264':

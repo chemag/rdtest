@@ -12,7 +12,7 @@ import re
 import subprocess
 import sys
 
-# LCEVC_ENC_DIR=~/work/lcevc/src/FB-Nov2019-release/1.\ FFmpeg\ encoder/enc_ffmpeg_linux_ubuntu_20191101/ LCEVC_DEC_DIR=~/work/lcevc/src/FB-Nov2019-release/2.\ Decoder\ Reference\ Platform/drp_linux_ubuntu_20191101/ LCEVC_DECODER=PPlusDec2Ref VMAF_DIR=~/proj/vmaf/ ./rdtest.py ~/dropbox/fb/video/codec_test_material/red_short_hevc_720p_yuv444p10le.mp4 --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.txt
+# LCEVC_ENC_DIR=~/work/lcevc/src/FB-Release-20200203/enc_ffmpeg_linux_ubuntu_LC/ LCEVC_ENCODER=ffmpeg LCEVC_DEC_DIR=~/work/lcevc/src/FB-Release-20200203/ffmpeg_dec/ LCEVC_DECODER=ffmpeg-ER-decoder ~/proj/rdtest/rdtest.py ~/dropbox/fb/video/codec_test_material/Johnny_1280x720_60.y4m --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.drop_20200203.johnny.txt --codecs "lcevc-x264 x264" --bitrates '100000' --resolutions '864x480'
 
 CODEC_INFO = {
     'lcevc-x264': {
@@ -176,6 +176,10 @@ def get_resolution(infile):
     return ffprobe_run('stream=width,height', infile)
 
 
+def get_pix_fmt(infile):
+    return ffprobe_run('stream=pix_fmt', infile)
+
+
 def get_framerate(infile):
     return ffprobe_run('stream=r_frame_rate', infile)
 
@@ -213,7 +217,7 @@ def run_experiment(options):
     in_framerate = get_framerate(in_filename)
 
     # 2. ref: decode the original file into a raw file
-    ref_basename = in_basename + '.ref_%s.yuv' % in_resolution
+    ref_basename = in_basename + '.ref_%s.y4m' % in_resolution
     if options.debug > 0:
         print('# [run] normalize file: %s -> %s' % (in_filename, ref_basename))
     ref_filename = os.path.join(options.tmp_dir, ref_basename)
@@ -223,11 +227,18 @@ def run_experiment(options):
     ref_pix_fmt = options.ref_pix_fmt
     ffmpeg_params = [
         '-y', '-i', options.infile,
-        '-f', 'rawvideo', '-s', ref_resolution, '-pix_fmt', ref_pix_fmt,
+        '-s', ref_resolution, '-pix_fmt', ref_pix_fmt,
         ref_filename,
     ]
     retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, options.debug)
     assert retcode == 0, stderr
+    # check produced file matches the requirements
+    assert ref_resolution == get_resolution(ref_filename), (
+        'Error: %s must have resolution: %s (is %s)' % (ref_filename,
+        ref_resolution, get_resolution(ref_filename)))
+    assert ref_pix_fmt == get_pix_fmt(ref_filename), (
+        'Error: %s must have pix_fmt: %s (is %s)' % (ref_filename,
+        ref_pix_fmt, get_pix_fmt(ref_filename)))
 
     # open outfile
     if options.outfile != sys.stdout:
@@ -258,9 +269,7 @@ def run_experiment(options):
 
 def get_psnr(filename, ref, pix_fmt, resolution, debug):
     ffmpeg_params = [
-        '-f', 'rawvideo', '-pix_fmt', pix_fmt, '-s', resolution,
         '-i', filename,
-        '-f', 'rawvideo', '-pix_fmt', pix_fmt, '-s', resolution,
         '-i', ref,
         '-filter_complex', 'psnr', '-f', 'null', '-',
     ]
@@ -275,9 +284,7 @@ def get_psnr(filename, ref, pix_fmt, resolution, debug):
 
 def get_ssim(filename, ref, pix_fmt, resolution, debug):
     ffmpeg_params = [
-        '-f', 'rawvideo', '-pix_fmt', pix_fmt, '-s', resolution,
         '-i', filename,
-        '-f', 'rawvideo', '-pix_fmt', pix_fmt, '-s', resolution,
         '-i', ref,
         '-filter_complex', 'ssim', '-f', 'null', '-',
     ]
@@ -303,9 +310,8 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
     if ffmpeg_supports_libvmaf:
         # ffmpeg supports libvmaf: use it (way faster)
         ffmpeg_params = [
-            '-f', 'rawvideo', '-pix_fmt', pix_fmt, '-s', resolution,
             '-i', filename,
-            '-f', 'rawvideo', '-pix_fmt', pix_fmt, '-s', resolution, '-i', ref,
+            '-i', ref,
             '-lavfi', 'libvmaf=log_path=/tmp/vmaf.txt', '-report',
             '-f', 'null', '-',
         ]
@@ -341,8 +347,7 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
         return res.groups()[0]
 
 
-def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
-                   outfile, codec, resolution, bitrate, rcmode,
+def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
                    gop_length_frames, debug):
     if debug > 0:
         print('# [%s] encoding file: %s -> %s' % (codec, in_filename, outfile))
@@ -350,8 +355,7 @@ def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
     # get encoding settings
     enc_tool = 'ffmpeg'
     enc_parms = ['-y', ]
-    enc_parms += ['-f', 'rawvideo', '-s', in_resolution, '-r', in_framerate]
-    enc_parms += ['-pix_fmt', in_pix_fmt, '-i', in_filename]
+    enc_parms += ['-i', in_filename]
 
     enc_env = None
     if codec == 'lcevc-x264':
@@ -465,12 +469,11 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     # 3. enc: encode copy with encoder
     enc_basename = gen_basename + CODEC_INFO[codec]['extension']
     enc_filename = os.path.join(tmp_dir, enc_basename)
-    run_single_enc(ref_filename, ref_resolution, ref_pix_fmt, ref_framerate,
-                   enc_filename, codec, resolution, bitrate, rcmode,
-                   gop_length_frames, debug)
+    run_single_enc(ref_filename, enc_filename, codec, resolution, bitrate,
+                   rcmode, gop_length_frames, debug)
 
     # 4. dec: decode copy in order to get statistics
-    dec_basename = enc_basename + '.yuv'
+    dec_basename = enc_basename + '.y4m'
     dec_filename = os.path.join(tmp_dir, dec_basename)
     run_single_dec(enc_filename, dec_filename, codec, debug)
 
@@ -479,20 +482,25 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     # This is needed to make sure the quality metrics make sense
     decs_basename = dec_basename + '.scaled'
     decs_basename += '.resolution_%s' % ref_resolution
-    decs_basename += '.yuv'
+    decs_basename += '.y4m'
     decs_filename = os.path.join(tmp_dir, decs_basename)
     if debug > 0:
         print('# [%s] scaling file: %s -> %s' % (codec, dec_filename,
                                                  decs_filename))
     ffmpeg_params = [
         '-y', '-nostats', '-loglevel', '0',
-        '-f', 'rawvideo', '-pix_fmt', ref_pix_fmt, '-s', resolution,
         '-i', dec_filename,
-        '-f', 'rawvideo', '-pix_fmt', ref_pix_fmt, '-s', ref_resolution,
-        decs_filename,
+        '-pix_fmt', ref_pix_fmt, '-s', ref_resolution, decs_filename,
     ]
     retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
+    # check produced file matches the requirements
+    assert ref_resolution == get_resolution(decs_filename), (
+        'Error: %s must have resolution: %s (is %s)' % (decs_filename,
+        ref_resolution, get_resolution(decs_filename)))
+    assert ref_pix_fmt == get_pix_fmt(decs_filename), (
+        'Error: %s must have pix_fmt: %s (is %s)' % (decs_filename,
+        ref_pix_fmt, get_pix_fmt(decs_filename)))
 
     # get quality scores
     psnr = get_psnr(decs_filename, ref_filename, ref_pix_fmt, ref_resolution,

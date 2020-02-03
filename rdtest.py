@@ -359,6 +359,9 @@ def run_single_enc(in_filename, in_resolution, in_pix_fmt, in_framerate,
             lcevc_enc_dir = os.environ['LCEVC_ENC_DIR']
             enc_tool = os.path.join(lcevc_enc_dir,
                                     os.environ.get('LCEVC_ENCODER', 'ffmpeg'))
+            # check encoder tool is executable
+            assert os.path.isfile(enc_tool) and os.access(enc_tool, os.X_OK), (
+                'Error: %s must be executable' % enc_tool)
             enc_env = {
                 'LD_LIBRARY_PATH': '%s:%s' % (lcevc_enc_dir,
                                               os.environ['LD_LIBRARY_PATH']),
@@ -417,6 +420,9 @@ def run_single_dec(infile, outfile, codec, debug):
             lcevc_dec_dir = os.environ['LCEVC_DEC_DIR']
             dec_tool = os.path.join(lcevc_dec_dir,
                                     os.environ.get('LCEVC_DECODER', 'ffmpeg'))
+            # check decoder tool is executable
+            assert os.path.isfile(dec_tool) and os.access(dec_tool, os.X_OK), (
+                'Error: %s must be executable' % dec_tool)
             dec_env['LD_LIBRARY_PATH'] = '%s:%s' % (
                     lcevc_dec_dir, os.environ['LD_LIBRARY_PATH'])
         if 'PPlusDec2Ref' in dec_tool:

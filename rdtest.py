@@ -261,7 +261,7 @@ def run_experiment(options):
                         ref_framerate,
                         codec, resolution, bitrate, rcmode,
                         options.gop_length_frames,
-                        options.tmp_dir, options.debug)
+                        options.tmp_dir, options.debug, options.cleanup)
                     fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
                         in_basename, codec, resolution, rcmode, bitrate,
                         actual_bitrate, psnr, ssim, vmaf))
@@ -372,6 +372,7 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
             }
         enc_parms += ['-c:v', 'pplusenc_x264', '-base_encoder', 'x264']
         if rcmode == 'cbr':
+            bitrate = str(int(int(bitrate) / 1.4))
             mode = 'bitrate=%s;' % bitrate
             #mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
             # internal setting (best setting for low resolutions)
@@ -453,7 +454,7 @@ def run_single_dec(infile, outfile, codec, debug):
 def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
                           ref_framerate,
                           codec, resolution, bitrate, rcmode,
-                          gop_length_frames, tmp_dir, debug):
+                          gop_length_frames, tmp_dir, debug, cleanup):
     if debug > 0:
         print('# [run] run_single_experiment codec: %s resolution: %s '
               'bitrate: %s rmcode: %s' % (codec, resolution, bitrate, rcmode))
@@ -514,9 +515,10 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     actual_bitrate = get_bitrate(enc_filename)
 
     # clean up experiments files
-    os.remove(enc_filename)
-    os.remove(dec_filename)
-    os.remove(decs_filename)
+    if cleanup:
+        os.remove(enc_filename)
+        os.remove(dec_filename)
+        os.remove(decs_filename)
     return actual_bitrate, psnr, ssim, vmaf
 
 
@@ -541,6 +543,12 @@ def get_options(argv):
     parser.add_argument('--quiet', action='store_const',
                         dest='debug', const=-1,
                         help='Zero verbosity',)
+    parser.add_argument('--cleanup', action='store_const',
+                        dest='cleanup', const=True, default=True,
+                        help='Cleanup Files',)
+    parser.add_argument('--no-cleanup', action='store_const',
+                        dest='cleanup', const=False,
+                        help='Cleanup Files',)
     parser.add_argument('-s', '--resolution', action='store',
                         dest='ref_res', default=default_values['ref_res'],
                         help='force RESOLUTION for the raw video',)

@@ -379,8 +379,8 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         # lcevc-only parameters
         if rcmode == 'cbr':
             mode = ''
-            # no b-frames
-            mode += 'bf=0;'
+            ## no b-frames
+            #mode += 'bf=0;'
             # medium preset for x264 makes more sense for mobile
             mode += 'preset=medium;'
             bitrate = str(int(int(bitrate) / 1.4))

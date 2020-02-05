@@ -378,8 +378,13 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         enc_parms += ['-preset', 'medium']
         # lcevc-only parameters
         if rcmode == 'cbr':
+            mode = ''
+            # no b-frames
+            mode += 'bf=0;'
+            # medium preset for x264 makes more sense for mobile
+            mode += 'preset=medium;'
             bitrate = str(int(int(bitrate) / 1.4))
-            mode = 'bitrate=%s;' % bitrate
+            mode += 'bitrate=%s;' % bitrate
             #TODO(chema): this should be settable (?)
             #mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
             #mode += 'rc_pcrf_base_rc_mode=crf;'
@@ -389,6 +394,8 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
             mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
             # upsampling
             mode += 'encoding_upsample=cubic;'
+            # ipp mode
+            mode += 'rc_pcrf_ipp_mode=1;'
         elif rcmode == 'cfr':
             # TODO(jblome): fix lcevc-x264 CFR mode parameters
             AssertionError('# error: cfr needs better parameters')

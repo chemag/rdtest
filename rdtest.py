@@ -371,6 +371,8 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
                                               os.environ['LD_LIBRARY_PATH']),
             }
         enc_parms += ['-c:v', 'pplusenc_x264', '-base_encoder', 'x264']
+        # no b-frames
+        enc_parms += ['-bf', '0']
         if rcmode == 'cbr':
             bitrate = str(int(int(bitrate) / 1.4))
             mode = 'bitrate=%s;' % bitrate
@@ -395,6 +397,8 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         enc_parms += ['-maxrate', '%sk' % bitrate]
         enc_parms += ['-minrate', '%sk' % bitrate]
         enc_parms += ['-b:v', '%sk' % bitrate]
+        # no b-frames
+        enc_parms += ['-bf', '0']
         enc_parms += ['-bufsize', '4M']
         enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
     elif codec == 'vp8':

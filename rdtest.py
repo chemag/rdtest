@@ -370,9 +370,13 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
                 'LD_LIBRARY_PATH': '%s:%s' % (lcevc_enc_dir,
                                               os.environ['LD_LIBRARY_PATH']),
             }
-        enc_parms += ['-c:v', 'pplusenc_x264', '-base_encoder', 'x264']
+        enc_parms += ['-c:v', 'pplusenc_x264']
+        enc_parms += ['-base_encoder', 'x264']
         # no b-frames
         enc_parms += ['-bf', '0']
+        # medium preset for x264 makes more sense for mobile
+        enc_parms += ['-preset', 'medium']
+        # lcevc-only parameters
         if rcmode == 'cbr':
             bitrate = str(int(int(bitrate) / 1.4))
             mode = 'bitrate=%s;' % bitrate

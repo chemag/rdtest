@@ -134,19 +134,16 @@ def plot_resolution_vmaf(options, set1):
             plt.setp(ax.get_xticklabels(), visible=True)
             # plot_max_min(set1, yaxis, ax)
         # write to disk
-        outfile = '%s.%s.png' % (options.infile, yaxis)
+        outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, yaxis)
         fg.savefig(outfile)
-
-    # plt.show()
 
 
 def plot_vmaf_bitrate(options, set1):
-    for feature in ('vmaf',):
-        xcol = feature
-        ycol = 'bitrate'
-        vcol = 'codec'
-        pcol = 'resolution'
-        plot_generic(options, set1, xcol, ycol, vcol, pcol)
+    xcol = 'vmaf'
+    ycol = 'bitrate'
+    vcol = 'codec'
+    pcol = 'resolution'
+    plot_generic(options, set1, xcol, ycol, vcol, pcol)
 
 
 def plot_bitrate_vmaf(options, set1):
@@ -175,7 +172,7 @@ def plot_generic(options, set1, xcol, ycol, vcol, pcol):
             xvals = pset1[pset1[vcol] == vval][xcol].tolist()
             yvals = pset1[pset1[vcol] == vval][ycol].tolist()
             label = str(vval)
-            ax.plot(xvals, yvals, '.', label=label, color=color)
+            ax.plot(xvals, yvals, '.-', label=label, color=color)
             ax.set_xlabel(PLOT_NAMES[xcol])
             if plot_id % max_ncols == 0:
                 ax.set_ylabel(PLOT_NAMES[ycol])

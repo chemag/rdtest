@@ -32,6 +32,11 @@ COLORS = {
     'vp8': 'orange',
 }
 
+FORMATS = {
+    360: '.-',
+    480: '.--',
+}
+
 PLOT_TYPES = {
     'bitrate-vmaf',  # traditional rd-test
     'resolution-vmaf',
@@ -41,6 +46,7 @@ PLOT_TYPES = {
 default_values = {
     'debug': 0,
     'plot_type': 'resolution-vmaf',
+    'simple': False,
     'infile': None,
 }
 
@@ -98,9 +104,9 @@ def process_file(options):
     if options.plot_type == 'resolution-vmaf':
         plot_resolution_vmaf(options, set1)
     elif options.plot_type == 'vmaf-bitrate':
-        plot_vmaf_bitrate(options, set1)
+        plot_vmaf_bitrate(options, set1, options.simple)
     elif options.plot_type == 'bitrate-vmaf':
-        plot_bitrate_vmaf(options, set1)
+        plot_bitrate_vmaf(options, set1, options.simple)
 
 
 def plot_resolution_vmaf(options, set1):
@@ -138,46 +144,83 @@ def plot_resolution_vmaf(options, set1):
         fg.savefig(outfile)
 
 
-def plot_vmaf_bitrate(options, set1):
+def plot_vmaf_bitrate(options, set1, simple=False):
     xcol = 'vmaf'
     ycol = 'bitrate'
     vcol = 'codec'
     pcol = 'resolution'
-    plot_generic(options, set1, xcol, ycol, vcol, pcol)
+    if simple:
+        plot_generic_simple(options, set1, xcol, ycol, vcol, pcol)
+    else:
+        plot_generic(options, set1, xcol, ycol, vcol, pcol)
 
 
-def plot_bitrate_vmaf(options, set1):
+def plot_bitrate_vmaf(options, set1, simple=False):
     for feature in ('vmaf', 'overshoot'):
         xcol = 'bitrate'
         ycol = feature
         vcol = 'codec'
         pcol = 'resolution'
-        plot_generic(options, set1, xcol, ycol, vcol, pcol)
+        if simple:
+            plot_generic_simple(options, set1, xcol, ycol, vcol, pcol)
+        else:
+            plot_generic(options, set1, xcol, ycol, vcol, pcol)
 
 
 def plot_generic(options, set1, xcol, ycol, vcol, pcol):
     # plot the results
     fig = plt.figure()
-    num_plots = set1[pcol].nunique()
+    num_pcol = set1[pcol].nunique()
     max_ncols = 3
-    ncols = min(num_plots, max_ncols)
-    nrows = math.ceil(num_plots / max_ncols)
-    for plot_id in range(num_plots):
+    ncols = min(num_pcol, max_ncols)
+    nrows = math.ceil(num_pcol / max_ncols)
+    # different plots
+    for plot_id in range(num_pcol):
         pval = set1[pcol].unique()[plot_id]
         pset1 = set1[set1[pcol] == pval]
         ax = fig.add_subplot(nrows, ncols, 1 + plot_id)
+        # different lines in each plot
         for var_id in range(pset1[vcol].nunique()):
             vval = pset1[vcol].unique()[var_id]
             color = COLORS[vval]
             xvals = pset1[pset1[vcol] == vval][xcol].tolist()
             yvals = pset1[pset1[vcol] == vval][ycol].tolist()
             label = str(vval)
-            ax.plot(xvals, yvals, '.-', label=label, color=color)
+            fmt = '.-'
+            ax.plot(xvals, yvals, fmt, label=label, color=color)
             ax.set_xlabel(PLOT_NAMES[xcol])
             if plot_id % max_ncols == 0:
                 ax.set_ylabel(PLOT_NAMES[ycol])
             ax.legend(loc='upper left')
             ax.set_title('%s: %s' % (pcol, pval))
+    # write to disk
+    outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
+    plt.savefig(outfile)
+
+
+# same than plot_generic, but mixing pcol and vcol in the same Figure
+def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol):
+    # plot the results
+    fig = plt.figure()
+    num_pcol = set1[pcol].nunique()
+    # different plots
+    ax = fig.add_subplot(1, 1, 1)
+    # turn plots into lines
+    for plot_id in range(num_pcol):
+        pval = set1[pcol].unique()[plot_id]
+        pset1 = set1[set1[pcol] == pval]
+        fmt = FORMATS[pval]
+        # different lines in each plot
+        for var_id in range(pset1[vcol].nunique()):
+            vval = pset1[vcol].unique()[var_id]
+            color = COLORS[vval]
+            xvals = pset1[pset1[vcol] == vval][xcol].tolist()
+            yvals = pset1[pset1[vcol] == vval][ycol].tolist()
+            label = '%s.%s' % (str(pval), str(vval))
+            ax.plot(xvals, yvals, fmt, label=label, color=color)
+            ax.set_xlabel(PLOT_NAMES[xcol])
+            ax.set_ylabel(PLOT_NAMES[ycol])
+            ax.legend(loc='lower right')
     # write to disk
     outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
     plt.savefig(outfile)
@@ -204,6 +247,9 @@ def get_options(argv):
     parser.add_argument('--quiet', action='store_const',
                         dest='debug', const=-1,
                         help='Zero verbosity',)
+    parser.add_argument('--simple', action='store_true',
+                        dest='simple', default=default_values['simple'],
+                        help='Simple Plots',)
     parser.add_argument('--plot', action='store', type=str,
                         dest='plot_type', default=default_values['plot_type'],
                         choices=PLOT_TYPES,

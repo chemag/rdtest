@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
 
+import argparse
+import math
 import sys
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -20,6 +23,7 @@ PLOT_NAMES = {
     'psnr': 'PSNR Score',
     'ssim': 'SSIM Score',
     'overshoot': 'Bitrate Overshoot (Percentage)',
+    'bitrate': 'Bitrate',
 }
 
 COLORS = {
@@ -28,8 +32,20 @@ COLORS = {
     'vp8': 'orange',
 }
 
+PLOT_TYPES = {
+    'bitrate-vmaf',  # traditional rd-test
+    'resolution-vmaf',
+    'vmaf-bitrate',
+}
 
-def get_width(row):
+default_values = {
+    'debug': 0,
+    'plot_type': 'resolution-vmaf',
+    'infile': None,
+}
+
+
+def get_resolution(row):
     return int(row['resolution'].split('x')[1])
 
 
@@ -44,19 +60,19 @@ def plot_max_min(set1, yaxis, ax):
     for codec in myset.codec.unique():
         m = myset[myset.codec == codec]
         max_values[codec] = {
-            'width': m.loc[m[yaxis].idxmax()]['width'],
+            'resolution': m.loc[m[yaxis].idxmax()]['resolution'],
             yaxis: m.loc[m[yaxis].idxmax()][yaxis],
         }
     for codec in max_values.keys():
         # add dots and lines for the best scores
-        # ax.scatter(x=max_values[codec]['width'],
+        # ax.scatter(x=max_values[codec]['resolution'],
         #        y=max_values[codec][yaxis],
         #        color='r')
         # add horizontal lines for the best score
         y = max_values[codec][yaxis]
         ax.axhline(y=y, color=COLORS[codec], linestyle=':')
     # add vertical arrow for the best score
-    # x = max_values['lcevc-x264']['width']
+    # x = max_values['lcevc-x264']['resolution']
     # y1 = max_values['lcevc-x264'][yaxis]
     # y2 = max_values['x264'][yaxis]
     # yaxis_delta = y1 - y2
@@ -67,25 +83,34 @@ def plot_max_min(set1, yaxis, ax):
     # ax.vlines(x, y1, y2, color=color)
 
 
-def process_file(inputfile):
+def process_file(options):
     # read CSV input
-    data = np.genfromtxt(inputfile, delimiter=',', dtype=None, names=True,
-                         encoding=None)
+    data = np.genfromtxt(options.infile, delimiter=',',
+                         dtype=None, names=True, encoding=None)
 
     # create pandas dataframe
     set1 = pd.DataFrame(data, dtype=None)
-    set1['width'] = set1.apply(lambda row: get_width(row), axis=1)
+    set1['resolution'] = set1.apply(lambda row: get_resolution(row), axis=1)
     set1['overshoot'] = set1.apply(lambda row: get_overshoot(row), axis=1)
-    set1.sort_values(by=['in_filename', 'codec', 'width', 'rcmode'],
+    set1.sort_values(by=['in_filename', 'codec', 'resolution', 'rcmode'],
                      inplace=True)
 
+    if options.plot_type == 'resolution-vmaf':
+        plot_resolution_vmaf(options, set1)
+    elif options.plot_type == 'vmaf-bitrate':
+        plot_vmaf_bitrate(options, set1)
+
+
+def plot_resolution_vmaf(options, set1):
     # common plot settings
     sb.set_style('darkgrid', {'axes.facecolor': '.9'})
 
     for yaxis in PLOT_NAMES:
+        if yaxis == 'bitrate':
+            continue
         plot_name = PLOT_NAMES[yaxis]
         kwargs = {
-            'x': 'width',
+            'x': 'resolution',
             'y': yaxis,
             'col': 'bitrate',
             'hue': 'codec',
@@ -105,14 +130,91 @@ def process_file(inputfile):
         for ax in fg.axes:
             # make sure all the x-axes show xticks
             plt.setp(ax.get_xticklabels(), visible=True)
-            plot_max_min(set1, yaxis, ax)
+            # plot_max_min(set1, yaxis, ax)
         # write to disk
-        output_file = '%s.%s.png' % (inputfile, yaxis)
-        fg.savefig(output_file)
+        outfile = '%s.%s.png' % (options.infile, yaxis)
+        fg.savefig(outfile)
 
     # plt.show()
 
 
+def plot_vmaf_bitrate(options, set1):
+    # common plot settings
+    sb.set_style('darkgrid', {'axes.facecolor': '.9'})
+
+    for feature in ('vmaf',):
+        xcol = feature
+        ycol = 'bitrate'
+        vcol = 'codec'
+        pcol = 'resolution'
+        # plot the results
+        fig = plt.figure()
+        num_plots = set1[pcol].nunique()
+        max_ncols = 3
+        ncols = min(num_plots, max_ncols)
+        nrows = math.ceil(num_plots / max_ncols)
+        for plot_id in range(num_plots):
+            pval = set1[pcol].unique()[plot_id]
+            pset1 = set1[set1[pcol] == pval]
+            ax = fig.add_subplot(nrows, ncols, 1 + plot_id)
+            for var_id in range(pset1[vcol].nunique()):
+                vval = pset1[vcol].unique()[var_id]
+                color = COLORS[vval]
+                xvals = pset1[pset1[vcol] == vval][xcol].tolist()
+                yvals = pset1[pset1[vcol] == vval][ycol].tolist()
+                label = str(vval)
+                ax.plot(xvals, yvals, '.', label=label, color=color)
+                ax.set_xlabel(PLOT_NAMES[xcol])
+                if plot_id % max_ncols == 0:
+                    ax.set_ylabel(PLOT_NAMES[ycol])
+                ax.legend(loc='upper left')
+                ax.set_title('%s: %s' % (pcol, pval))
+        # write to disk
+        outfile = '%s.%s.png' % (options.infile, feature)
+        plt.savefig(outfile)
+
+
+def get_options(argv):
+    """Generic option parser.
+
+    Args:
+        argv: list containing arguments
+
+    Returns:
+        Namespace - An argparse.ArgumentParser-generated option object
+    """
+    # init parser
+    # usage = 'usage: %prog [options] arg1 arg2'
+    # parser = argparse.OptionParser(usage=usage)
+    # parser.print_help() to get argparse.usage (large help)
+    # parser.print_usage() to get argparse.usage (just usage line)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-d', '--debug', action='count',
+                        dest='debug', default=default_values['debug'],
+                        help='Increase verbosity (multiple times for more)',)
+    parser.add_argument('--quiet', action='store_const',
+                        dest='debug', const=-1,
+                        help='Zero verbosity',)
+    parser.add_argument('--plot', action='store', type=str,
+                        dest='plot_type', default=default_values['plot_type'],
+                        choices=PLOT_TYPES,
+                        metavar='PLOT_TYPE',
+                        help='plot type %r' % PLOT_TYPES,)
+    parser.add_argument('infile', type=str,
+                        default=default_values['infile'],
+                        metavar='input-file',
+                        help='input file',)
+    # do the parsing
+    options = parser.parse_args(argv[1:])
+    return options
+
+
+def main(argv):
+    # parse options
+    options = get_options(argv)
+    process_file(options)
+
+
 if __name__ == '__main__':
-    inputfile = sys.argv[1]
-    process_file(inputfile)
+    # at least the CLI program name: (CLI) execution
+    main(sys.argv)

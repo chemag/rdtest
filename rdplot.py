@@ -99,6 +99,8 @@ def process_file(options):
         plot_resolution_vmaf(options, set1)
     elif options.plot_type == 'vmaf-bitrate':
         plot_vmaf_bitrate(options, set1)
+    elif options.plot_type == 'bitrate-vmaf':
+        plot_bitrate_vmaf(options, set1)
 
 
 def plot_resolution_vmaf(options, set1):
@@ -139,39 +141,49 @@ def plot_resolution_vmaf(options, set1):
 
 
 def plot_vmaf_bitrate(options, set1):
-    # common plot settings
-    sb.set_style('darkgrid', {'axes.facecolor': '.9'})
-
     for feature in ('vmaf',):
         xcol = feature
         ycol = 'bitrate'
         vcol = 'codec'
         pcol = 'resolution'
-        # plot the results
-        fig = plt.figure()
-        num_plots = set1[pcol].nunique()
-        max_ncols = 3
-        ncols = min(num_plots, max_ncols)
-        nrows = math.ceil(num_plots / max_ncols)
-        for plot_id in range(num_plots):
-            pval = set1[pcol].unique()[plot_id]
-            pset1 = set1[set1[pcol] == pval]
-            ax = fig.add_subplot(nrows, ncols, 1 + plot_id)
-            for var_id in range(pset1[vcol].nunique()):
-                vval = pset1[vcol].unique()[var_id]
-                color = COLORS[vval]
-                xvals = pset1[pset1[vcol] == vval][xcol].tolist()
-                yvals = pset1[pset1[vcol] == vval][ycol].tolist()
-                label = str(vval)
-                ax.plot(xvals, yvals, '.', label=label, color=color)
-                ax.set_xlabel(PLOT_NAMES[xcol])
-                if plot_id % max_ncols == 0:
-                    ax.set_ylabel(PLOT_NAMES[ycol])
-                ax.legend(loc='upper left')
-                ax.set_title('%s: %s' % (pcol, pval))
-        # write to disk
-        outfile = '%s.%s.png' % (options.infile, feature)
-        plt.savefig(outfile)
+        plot_generic(options, set1, xcol, ycol, vcol, pcol)
+
+
+def plot_bitrate_vmaf(options, set1):
+    for feature in ('vmaf', 'overshoot'):
+        xcol = 'bitrate'
+        ycol = feature
+        vcol = 'codec'
+        pcol = 'resolution'
+        plot_generic(options, set1, xcol, ycol, vcol, pcol)
+
+
+def plot_generic(options, set1, xcol, ycol, vcol, pcol):
+    # plot the results
+    fig = plt.figure()
+    num_plots = set1[pcol].nunique()
+    max_ncols = 3
+    ncols = min(num_plots, max_ncols)
+    nrows = math.ceil(num_plots / max_ncols)
+    for plot_id in range(num_plots):
+        pval = set1[pcol].unique()[plot_id]
+        pset1 = set1[set1[pcol] == pval]
+        ax = fig.add_subplot(nrows, ncols, 1 + plot_id)
+        for var_id in range(pset1[vcol].nunique()):
+            vval = pset1[vcol].unique()[var_id]
+            color = COLORS[vval]
+            xvals = pset1[pset1[vcol] == vval][xcol].tolist()
+            yvals = pset1[pset1[vcol] == vval][ycol].tolist()
+            label = str(vval)
+            ax.plot(xvals, yvals, '.', label=label, color=color)
+            ax.set_xlabel(PLOT_NAMES[xcol])
+            if plot_id % max_ncols == 0:
+                ax.set_ylabel(PLOT_NAMES[ycol])
+            ax.legend(loc='upper left')
+            ax.set_title('%s: %s' % (pcol, pval))
+    # write to disk
+    outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
+    plt.savefig(outfile)
 
 
 def get_options(argv):
@@ -200,6 +212,10 @@ def get_options(argv):
                         choices=PLOT_TYPES,
                         metavar='PLOT_TYPE',
                         help='plot type %r' % PLOT_TYPES,)
+    parser.add_argument('--traditional', action='store_const',
+                        dest='plot_type', const='bitrate-vmaf',
+                        metavar='PLOT_TYPE',
+                        help='plot type: bitrate-vmaf',)
     parser.add_argument('infile', type=str,
                         default=default_values['infile'],
                         metavar='input-file',

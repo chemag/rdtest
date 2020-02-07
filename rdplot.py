@@ -24,6 +24,7 @@ PLOT_NAMES = {
     'ssim': 'SSIM Score',
     'overshoot': 'Bitrate Overshoot (Percentage)',
     'bitrate': 'Bitrate',
+    'actual_bitrate': 'Actual Bitrate',
 }
 
 COLORS = {
@@ -175,7 +176,7 @@ def plot_resolution_vmaf(options, set1):
 
 def plot_vmaf_bitrate(options, set1, simple=False):
     xcol = 'vmaf'
-    ycol = 'bitrate'
+    ycol = 'actual_bitrate'
     vcol = 'codec'
     pcol = 'resolution'
     if simple:
@@ -186,7 +187,7 @@ def plot_vmaf_bitrate(options, set1, simple=False):
 
 def plot_bitrate_vmaf(options, set1, simple=False):
     for feature in ('vmaf', 'overshoot'):
-        xcol = 'bitrate'
+        xcol = 'actual_bitrate'
         ycol = feature
         vcol = 'codec'
         pcol = 'resolution'

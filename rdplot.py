@@ -28,13 +28,36 @@ PLOT_NAMES = {
 
 COLORS = {
     'x264': 'blue',
-    'lcevc-x264': 'skyblue',
-    'vp8': 'orange',
+    'lcevc-x264': 'red',
+    'vp8': 'green',
 }
 
 FORMATS = {
+    120: '.:',
+    240: '.-.',
     360: '.-',
     480: '.--',
+}
+
+COLORS2 = {
+    'x264': {
+        120: '#000080',
+        240: '#0000a0',
+        360: '#0000d0',
+        480: '#0000ff',
+    },
+    'lcevc-x264': {
+        120: '#800000',
+        240: '#a00000',
+        360: '#d00000',
+        480: '#ff0000',
+    },
+    'vp8': {
+        120: '#008000',
+        240: '#00a000',
+        360: '#00d000',
+        480: '#00ff00',
+    },
 }
 
 PLOT_TYPES = {
@@ -47,6 +70,7 @@ default_values = {
     'debug': 0,
     'plot_type': 'resolution-vmaf',
     'simple': False,
+    'filter': False,
     'infile': None,
 }
 
@@ -100,6 +124,11 @@ def process_file(options):
     set1['overshoot'] = set1.apply(lambda row: get_overshoot(row), axis=1)
     set1.sort_values(by=['in_filename', 'codec', 'resolution', 'rcmode'],
                      inplace=True)
+    if options.filter:
+        # filter overshooting values
+        for index, row in set1.iterrows():
+            if row['overshoot'] > 10.0:
+                set1.drop(index, inplace=True)
 
     if options.plot_type == 'resolution-vmaf':
         plot_resolution_vmaf(options, set1)
@@ -213,7 +242,7 @@ def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol):
         # different lines in each plot
         for var_id in range(pset1[vcol].nunique()):
             vval = pset1[vcol].unique()[var_id]
-            color = COLORS[vval]
+            color = COLORS2[vval][pval]
             xvals = pset1[pset1[vcol] == vval][xcol].tolist()
             yvals = pset1[pset1[vcol] == vval][ycol].tolist()
             label = '%s.%s' % (str(pval), str(vval))
@@ -250,6 +279,9 @@ def get_options(argv):
     parser.add_argument('--simple', action='store_true',
                         dest='simple', default=default_values['simple'],
                         help='Simple Plots',)
+    parser.add_argument('--filter', action='store_true',
+                        dest='filter', default=default_values['filter'],
+                        help='Filter Out Overshooting Samples',)
     parser.add_argument('--plot', action='store', type=str,
                         dest='plot_type', default=default_values['plot_type'],
                         choices=PLOT_TYPES,

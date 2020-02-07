@@ -383,7 +383,8 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
             #mode += 'bf=0;'
             # medium preset for x264 makes more sense for mobile
             mode += 'preset=medium;'
-            bitrate = str(int(int(bitrate) / 1.4))
+            # current lcevc overhead is 13 kbps
+            bitrate = str(int(bitrate) - 13)
             mode += 'bitrate=%s;' % bitrate
             #TODO(chema): this should be settable (?)
             #mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode

@@ -65,6 +65,7 @@ PLOT_TYPES = {
     'bitrate-vmaf',  # traditional rd-test
     'resolution-vmaf',
     'vmaf-bitrate',
+    'all',
 }
 
 default_values = {
@@ -136,6 +137,10 @@ def process_file(options):
     elif options.plot_type == 'vmaf-bitrate':
         plot_vmaf_bitrate(options, set1, options.simple)
     elif options.plot_type == 'bitrate-vmaf':
+        plot_bitrate_vmaf(options, set1, options.simple)
+    elif options.plot_type == 'all':
+        plot_resolution_vmaf(options, set1)
+        plot_vmaf_bitrate(options, set1, options.simple)
         plot_bitrate_vmaf(options, set1, options.simple)
 
 

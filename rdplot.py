@@ -298,6 +298,8 @@ def get_options(argv):
                         help='input file',)
     # do the parsing
     options = parser.parse_args(argv[1:])
+    if options.infile == '-':
+        options.infile = sys.stdin
     return options
 
 

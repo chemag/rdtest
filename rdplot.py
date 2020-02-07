@@ -251,6 +251,7 @@ def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol):
             ax.set_xlabel(PLOT_NAMES[xcol])
             ax.set_ylabel(PLOT_NAMES[ycol])
             ax.legend(loc='lower right')
+    ax.set_title('%s' % (list(set1.iterrows())[0][1]['in_filename']))
     # write to disk
     outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
     plt.savefig(outfile)

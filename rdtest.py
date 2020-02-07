@@ -392,7 +392,7 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
             ## internal setting (best setting for low resolutions)
             #mode += 'rc_pcrf_sw_loq1=32768;'
             # GoP length (default is 2x fps)
-            mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
+            #mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
             # upsampling
             mode += 'encoding_upsample=cubic;'
             # ipp mode

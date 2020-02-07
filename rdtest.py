@@ -438,6 +438,8 @@ def run_single_dec(infile, outfile, codec, debug):
 
     # get decoding settings
     dec_tool = 'ffmpeg'
+    if codec == 'lcevc-x264':
+        dec_parms = ['-vcodec lcevc_h264']
     dec_parms = ['-i', infile]
     dec_env = None
     if codec == 'lcevc-x264':

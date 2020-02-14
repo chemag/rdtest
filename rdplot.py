@@ -138,7 +138,8 @@ def process_file(options):
     if options.plot_type == 'resolution-vmaf':
         plot_resolution_vmaf(options, set1)
     elif options.plot_type == 'vmaf-bitrate':
-        plot_vmaf_bitrate(options, set1, options.simple)
+        plot_vmaf_bitrate(options, set1, options.simple,
+                          legend_loc='upper left')
     elif options.plot_type == 'bitrate-vmaf':
         plot_bitrate_vmaf(options, set1, options.simple)
     elif options.plot_type == 'all':
@@ -182,30 +183,31 @@ def plot_resolution_vmaf(options, set1):
         fg.savefig(outfile)
 
 
-def plot_vmaf_bitrate(options, set1, simple=False):
+def plot_vmaf_bitrate(options, set1, simple=False, **kwargs):
     xcol = 'vmaf'
     ycol = 'actual_bitrate'
     vcol = 'codec'
     pcol = 'resolution'
     if simple:
-        plot_generic_simple(options, set1, xcol, ycol, vcol, pcol)
+        plot_generic_simple(options, set1, xcol, ycol, vcol, pcol, **kwargs)
     else:
-        plot_generic(options, set1, xcol, ycol, vcol, pcol)
+        plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
 
 
-def plot_bitrate_vmaf(options, set1, simple=False):
+def plot_bitrate_vmaf(options, set1, simple=False, **kwargs):
     for feature in ('vmaf', 'overshoot'):
         xcol = 'actual_bitrate'
         ycol = feature
         vcol = 'codec'
         pcol = 'resolution'
         if simple:
-            plot_generic_simple(options, set1, xcol, ycol, vcol, pcol)
+            plot_generic_simple(options, set1, xcol, ycol, vcol, pcol,
+                                **kwargs)
         else:
-            plot_generic(options, set1, xcol, ycol, vcol, pcol)
+            plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
 
 
-def plot_generic(options, set1, xcol, ycol, vcol, pcol):
+def plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs):
     # plot the results
     fig = plt.figure()
     num_pcol = set1[pcol].nunique()
@@ -229,7 +231,7 @@ def plot_generic(options, set1, xcol, ycol, vcol, pcol):
             ax.set_xlabel(PLOT_NAMES[xcol])
             if plot_id % max_ncols == 0:
                 ax.set_ylabel(PLOT_NAMES[ycol])
-            ax.legend(loc='upper left')
+            ax.legend(loc=kwargs.get('legend_loc', 'upper left'))
             ax.set_title('%s: %s' % (pcol, pval))
     # write to disk
     outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
@@ -237,7 +239,7 @@ def plot_generic(options, set1, xcol, ycol, vcol, pcol):
 
 
 # same than plot_generic, but mixing pcol and vcol in the same Figure
-def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol):
+def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol, **kwargs):
     # plot the results
     fig = plt.figure()
     num_pcol = set1[pcol].nunique()
@@ -258,7 +260,7 @@ def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol):
             ax.plot(xvals, yvals, fmt, label=label, color=color)
             ax.set_xlabel(PLOT_NAMES[xcol])
             ax.set_ylabel(PLOT_NAMES[ycol])
-            ax.legend(loc='lower right')
+            ax.legend(loc=kwargs.get('legend_loc', 'lower right'))
     ax.set_title('%s' % (list(set1.iterrows())[0][1]['in_filename']))
     # write to disk
     outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)

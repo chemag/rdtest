@@ -30,6 +30,7 @@ PLOT_NAMES = {
 COLORS = {
     'x264': 'blue',
     'lcevc-x264': 'red',
+    'openh264': 'black',
     'vp8': 'green',
 }
 
@@ -54,6 +55,13 @@ COLORS2 = {
         240: '#ff8000',
         360: '#ff4000',
         480: '#ff0000',
+    },
+    'openh264': {
+        # black
+        120: '#ffc0ff',
+        240: '#ff80ff',
+        360: '#ff40ff',
+        480: '#ff00ff',
     },
     'vp8': {
         # green

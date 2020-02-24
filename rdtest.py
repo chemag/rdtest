@@ -21,6 +21,9 @@ CODEC_INFO = {
     'x264': {
         'extension': '.mp4',
     },
+    'openh264': {
+        'extension': '.mp4',
+    },
     'vp8': {
         'extension': '.webm',
     },
@@ -415,6 +418,17 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         bufsize = str(int(bitrate) * 2)
         enc_parms += ['-bufsize', bufsize]
         enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
+    elif codec == 'openh264':
+        enc_parms += ['-c:v', 'libopenh264']
+        enc_parms += ['-maxrate', '%sk' % bitrate]
+        enc_parms += ['-minrate', '%sk' % bitrate]
+        enc_parms += ['-b:v', '%sk' % bitrate]
+        # no b-frames
+        enc_parms += ['-bf', '0']
+        # set bufsize to 2x the bitrate
+        bufsize = str(int(bitrate) * 2)
+        enc_parms += ['-bufsize', bufsize]
+        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
     elif codec == 'vp8':
         enc_parms += ['-c:v', 'libvpx']
         enc_parms += ['-maxrate', '%sk' % bitrate]
@@ -461,9 +475,7 @@ def run_single_dec(infile, outfile, codec, debug):
             dec_parms += ['-y', outfile]
         # perseus decoder requires X context
         dec_env['DISPLAY'] = ':0'
-    elif codec == 'x264':
-        dec_parms += ['-y', outfile]
-    elif codec == 'vp8':
+    elif codec in ('x264', 'openh264', 'vp8'):
         dec_parms += ['-y', outfile]
 
     # run decoder

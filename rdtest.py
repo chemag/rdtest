@@ -237,11 +237,11 @@ def run_experiment(options):
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == get_resolution(ref_filename), (
-        'Error: %s must have resolution: %s (is %s)' % (ref_filename,
-        ref_resolution, get_resolution(ref_filename)))
+        'Error: %s must have resolution: %s (is %s)' % (
+            ref_filename, ref_resolution, get_resolution(ref_filename)))
     assert ref_pix_fmt == get_pix_fmt(ref_filename), (
-        'Error: %s must have pix_fmt: %s (is %s)' % (ref_filename,
-        ref_pix_fmt, get_pix_fmt(ref_filename)))
+        'Error: %s must have pix_fmt: %s (is %s)' % (
+            ref_filename, ref_pix_fmt, get_pix_fmt(ref_filename)))
 
     # open outfile
     if options.outfile != sys.stdout:
@@ -382,20 +382,20 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         # lcevc-only parameters
         if rcmode == 'cbr':
             mode = ''
-            ## no b-frames
-            #mode += 'bf=0;'
+            # no b-frames
+            # mode += 'bf=0;'
             # medium preset for x264 makes more sense for mobile
             mode += 'preset=medium;'
             # current lcevc overhead is 13 kbps
             bitrate = str(int(bitrate) - 13)
             mode += 'bitrate=%s;' % bitrate
-            #TODO(chema): this should be settable (?)
-            #mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
-            #mode += 'rc_pcrf_base_rc_mode=crf;'
-            ## internal setting (best setting for low resolutions)
-            #mode += 'rc_pcrf_sw_loq1=32768;'
+            # TODO(chema): this should be settable (?)
+            # mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
+            # mode += 'rc_pcrf_base_rc_mode=crf;'
+            # internal setting (best setting for low resolutions)
+            # mode += 'rc_pcrf_sw_loq1=32768;'
             # GoP length (default is 2x fps)
-            #mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
+            # mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
             # upsampling
             mode += 'encoding_upsample=cubic;'
             # ipp mode
@@ -530,11 +530,11 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == get_resolution(decs_filename), (
-        'Error: %s must have resolution: %s (is %s)' % (decs_filename,
-        ref_resolution, get_resolution(decs_filename)))
+        'Error: %s must have resolution: %s (is %s)' % (
+            decs_filename, ref_resolution, get_resolution(decs_filename)))
     assert ref_pix_fmt == get_pix_fmt(decs_filename), (
-        'Error: %s must have pix_fmt: %s (is %s)' % (decs_filename,
-        ref_pix_fmt, get_pix_fmt(decs_filename)))
+        'Error: %s must have pix_fmt: %s (is %s)' % (
+            decs_filename, ref_pix_fmt, get_pix_fmt(decs_filename)))
 
     # get quality scores
     psnr = get_psnr(decs_filename, ref_filename, ref_pix_fmt, ref_resolution,
@@ -632,22 +632,26 @@ def get_options(argv):
                 vars(options)[field] = vars(options)[field][0].split(sep)
     # check valid values in options.codecs
     if not all(c in CODEC_INFO.keys() for c in options.codecs):
-        print('# error: invalid codecs: %r supported_codecs: %r' % (
-              options.codecs, list(CODEC_INFO.keys())))
+        print('# error: invalid codec(s): %r supported_codecs: %r' % (
+              [c for c in options.codecs if c not in CODEC_INFO.keys()],
+              list(CODEC_INFO.keys())))
         sys.exit(-1)
     # check valid values in options.resolutions
     if not all('x' in r for r in options.resolutions):
-        print('# error: invalid resolutions: %r' % (options.resolutions))
+        print('# error: invalid resolution(s): %r' % (
+               [r for r in options.resolutions if 'x' not in r]))
         sys.exit(-1)
     # check valid values in options.bitrates
     if not all((isinstance(b, int) or b.isnumeric()) for b in
                options.bitrates):
-        print('# error: invalid bitrates: %r' % (options.bitrates))
+        print('# error: invalid bitrate(s): %r' % (
+              [b for b in options.bitrates if not (isinstance(b, int) or
+                                                   b.isnumeric())]))
         sys.exit(-1)
     # check valid values in options.rcmodes
     if not all(r in RCMODES for r in options.rcmodes):
-        print('# error: invalid rcmodes: %r supported_rcmodes: %r' % (
-              options.rcmodes, RCMODES))
+        print('# error: invalid rcmode(s): %r supported_rcmodes: %r' % (
+              [r for r in options.rcmodes if r not in RCMODES], RCMODES))
         sys.exit(-1)
     return options
 

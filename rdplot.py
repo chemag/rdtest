@@ -74,6 +74,9 @@ COLORS2 = {
 
 PLOT_TYPES = {
     'bitrate-vmaf',  # traditional rd-test
+    'bitrate-ssim',  # traditional rd-test
+    'bitrate-psnr',  # traditional rd-test
+    'bitrate-overshoot',  # traditional rd-test
     'resolution-vmaf',
     'vmaf-bitrate',
     'all',
@@ -149,11 +152,17 @@ def process_file(options):
         plot_vmaf_bitrate(options, set1, options.simple,
                           legend_loc='upper left')
     elif options.plot_type == 'bitrate-vmaf':
-        plot_bitrate_vmaf(options, set1, options.simple)
+        plot_traditional('vmaf', options, set1, options.simple)
+    elif options.plot_type == 'bitrate-psnr':
+        plot_traditional('psnr', options, set1, options.simple)
+    elif options.plot_type == 'bitrate-ssim':
+        plot_traditional('ssim', options, set1, options.simple)
+    elif options.plot_type == 'bitrate-overshoot':
+        plot_traditional('overshoot', options, set1, options.simple)
     elif options.plot_type == 'all':
         plot_resolution_vmaf(options, set1)
         plot_vmaf_bitrate(options, set1, options.simple)
-        plot_bitrate_vmaf(options, set1, options.simple)
+        plot_traditional('vmaf', options, set1, options.simple)
 
 
 def plot_resolution_vmaf(options, set1):
@@ -202,17 +211,16 @@ def plot_vmaf_bitrate(options, set1, simple=False, **kwargs):
         plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
 
 
-def plot_bitrate_vmaf(options, set1, simple=False, **kwargs):
-    for feature in ('vmaf', 'overshoot'):
-        xcol = 'actual_bitrate'
-        ycol = feature
-        vcol = 'codec'
-        pcol = 'resolution'
-        if simple:
-            plot_generic_simple(options, set1, xcol, ycol, vcol, pcol,
-                                **kwargs)
-        else:
-            plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
+def plot_traditional(feature, options, set1, simple=False, **kwargs):
+    xcol = 'actual_bitrate'
+    ycol = feature
+    vcol = 'codec'
+    pcol = 'resolution'
+    if simple:
+        plot_generic_simple(options, set1, xcol, ycol, vcol, pcol,
+                            **kwargs)
+    else:
+        plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
 
 
 def plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs):
@@ -271,7 +279,7 @@ def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol, **kwargs):
             ax.legend(loc=kwargs.get('legend_loc', 'lower right'))
     ax.set_title('%s' % (list(set1.iterrows())[0][1]['in_filename']))
     # write to disk
-    outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
+    outfile = '%s.%s.png' % (options.infile, options.plot_type)
     plt.savefig(outfile)
 
 

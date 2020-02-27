@@ -99,32 +99,32 @@ def get_overshoot(row):
     return (100.0 * (row['actual_bitrate'] - row['bitrate'])) / row['bitrate']
 
 
-def plot_max_min(set1, yaxis, ax):
+def plot_max_min(set1, ycol, ax):
     bitrate = int(ax.title.get_text().split(' = ')[1])
     myset = set1[set1.bitrate == bitrate]
     max_values = {}
     for codec in myset.codec.unique():
         m = myset[myset.codec == codec]
         max_values[codec] = {
-            'resolution': m.loc[m[yaxis].idxmax()]['resolution'],
-            yaxis: m.loc[m[yaxis].idxmax()][yaxis],
+            'resolution': m.loc[m[ycol].idxmax()]['resolution'],
+            ycol: m.loc[m[ycol].idxmax()][ycol],
         }
     for codec in max_values.keys():
         # add dots and lines for the best scores
         # ax.scatter(x=max_values[codec]['resolution'],
-        #        y=max_values[codec][yaxis],
+        #        y=max_values[codec][ycol],
         #        color='r')
         # add horizontal lines for the best score
-        y = max_values[codec][yaxis]
+        y = max_values[codec][ycol]
         ax.axhline(y=y, color=COLORS[codec], linestyle=':')
     # add vertical arrow for the best score
     # x = max_values['lcevc-x264']['resolution']
-    # y1 = max_values['lcevc-x264'][yaxis]
-    # y2 = max_values['x264'][yaxis]
-    # yaxis_delta = y1 - y2
-    # color = 'k' if yaxis_delta > 0 else 'r'
+    # y1 = max_values['lcevc-x264'][ycol]
+    # y2 = max_values['x264'][ycol]
+    # ycol_delta = y1 - y2
+    # color = 'k' if ycol_delta > 0 else 'r'
     # import code; code.interact(local=locals())  # python gdb/debugging
-    # ax.annotate('%s' % yaxis_delta, xy=(x,y), xytext=(x,y),
+    # ax.annotate('%s' % ycol_delta, xy=(x,y), xytext=(x,y),
     #        arrowprops=dict(arrowstyle="<->", color=color))
     # ax.vlines(x, y1, y2, color=color)
 
@@ -163,19 +163,23 @@ def process_file(options):
         plot_resolution_vmaf(options, set1)
         plot_vmaf_bitrate(options, set1, options.simple)
         plot_traditional('vmaf', options, set1, options.simple)
+        plot_traditional('psnr', options, set1, options.simple)
+        plot_traditional('ssim', options, set1, options.simple)
+        plot_traditional('overshoot', options, set1, options.simple)
 
 
 def plot_resolution_vmaf(options, set1):
     # common plot settings
     sb.set_style('darkgrid', {'axes.facecolor': '.9'})
 
-    for yaxis in PLOT_NAMES:
-        if yaxis == 'bitrate':
+    xcol = 'resolution'
+    for ycol in PLOT_NAMES:
+        if ycol == 'bitrate':
             continue
-        plot_name = PLOT_NAMES[yaxis]
+        plot_name = PLOT_NAMES[ycol]
         kwargs = {
-            'x': 'resolution',
-            'y': yaxis,
+            'x': xcol,
+            'y': ycol,
             'col': 'bitrate',
             'hue': 'codec',
             'ci': 'sd',
@@ -194,9 +198,9 @@ def plot_resolution_vmaf(options, set1):
         for ax in fg.axes:
             # make sure all the x-axes show xticks
             plt.setp(ax.get_xticklabels(), visible=True)
-            # plot_max_min(set1, yaxis, ax)
+            # plot_max_min(set1, ycol, ax)
         # write to disk
-        outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, yaxis)
+        outfile = '%s.%s-%s.png' % (options.infile, xcol, ycol)
         fg.savefig(outfile)
 
 
@@ -250,7 +254,7 @@ def plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs):
             ax.legend(loc=kwargs.get('legend_loc', 'upper left'))
             ax.set_title('%s: %s' % (pcol, pval))
     # write to disk
-    outfile = '%s.%s.%s.png' % (options.infile, options.plot_type, ycol)
+    outfile = '%s.%s-%s.png' % (options.infile, xcol, ycol)
     plt.savefig(outfile)
 
 
@@ -279,7 +283,7 @@ def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol, **kwargs):
             ax.legend(loc=kwargs.get('legend_loc', 'lower right'))
     ax.set_title('%s' % (list(set1.iterrows())[0][1]['in_filename']))
     # write to disk
-    outfile = '%s.%s.png' % (options.infile, options.plot_type)
+    outfile = '%s.%s-%s.png' % (options.infile, xcol, ycol)
     plt.savefig(outfile)
 
 

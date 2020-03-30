@@ -149,23 +149,24 @@ def process_file(options):
     if options.plot_type == 'resolution-vmaf':
         plot_resolution_vmaf(options, set1)
     elif options.plot_type == 'vmaf-bitrate':
-        plot_vmaf_bitrate(options, set1, options.simple,
+        plot_traditional('vmaf', 'actual_bitrate', options, set1, options.simple,
                           legend_loc='upper left')
     elif options.plot_type == 'bitrate-vmaf':
-        plot_traditional('vmaf', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'vmaf', options, set1, options.simple)
     elif options.plot_type == 'bitrate-psnr':
-        plot_traditional('psnr', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'psnr', options, set1, options.simple)
     elif options.plot_type == 'bitrate-ssim':
-        plot_traditional('ssim', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'ssim', options, set1, options.simple)
     elif options.plot_type == 'bitrate-overshoot':
-        plot_traditional('overshoot', options, set1, options.simple)
+        plot_traditional('bitrate', 'overshoot', options, set1, options.simple)
     elif options.plot_type == 'all':
-        plot_resolution_vmaf(options, set1)
-        plot_vmaf_bitrate(options, set1, options.simple)
-        plot_traditional('vmaf', options, set1, options.simple)
-        plot_traditional('psnr', options, set1, options.simple)
-        plot_traditional('ssim', options, set1, options.simple)
-        plot_traditional('overshoot', options, set1, options.simple)
+        # plot_resolution_vmaf(options, set1)
+        plot_traditional('vmaf', 'actual_bitrate', options, set1, options.simple,
+                          legend_loc='upper left')
+        plot_traditional('actual_bitrate', 'vmaf', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'psnr', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'ssim', options, set1, options.simple)
+        plot_traditional('bitrate', 'overshoot', options, set1, options.simple)
 
 
 def plot_resolution_vmaf(options, set1):
@@ -204,20 +205,7 @@ def plot_resolution_vmaf(options, set1):
         fg.savefig(outfile)
 
 
-def plot_vmaf_bitrate(options, set1, simple=False, **kwargs):
-    xcol = 'vmaf'
-    ycol = 'actual_bitrate'
-    vcol = 'codec'
-    pcol = 'resolution'
-    if simple:
-        plot_generic_simple(options, set1, xcol, ycol, vcol, pcol, **kwargs)
-    else:
-        plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
-
-
-def plot_traditional(feature, options, set1, simple=False, **kwargs):
-    xcol = 'actual_bitrate'
-    ycol = feature
+def plot_traditional(xcol, ycol, options, set1, simple=False, **kwargs):
     vcol = 'codec'
     pcol = 'resolution'
     if simple:

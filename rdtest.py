@@ -11,6 +11,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 
 # LCEVC_ENC_DIR=~/work/lcevc/src/FB-Release-20200203/enc_ffmpeg_linux_ubuntu_LC/ LCEVC_ENCODER=ffmpeg LCEVC_DEC_DIR=~/work/lcevc/src/FB-Release-20200203/ffmpeg_dec/ LCEVC_DECODER=ffmpeg-ER-decoder ~/proj/rdtest/rdtest.py ~/dropbox/fb/video/codec_test_material/Johnny_1280x720_60.y4m --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.drop_20200203.johnny.txt --codecs "lcevc-x264 x264" --bitrates '100000' --resolutions '864x480'
 
@@ -253,21 +254,22 @@ def run_experiment(options):
         fout = sys.stdout.buffer
 
     # run the list of encodings
-    fout.write('# in_filename,codec,resolution,rcmode,bitrate,actual_bitrate,'
-               'psnr,ssim,vmaf\n')
+    fout.write('# in_filename,codec,resolution,rcmode,bitrate,duration,'
+               'actual_bitrate,psnr,ssim,vmaf\n')
     for codec in options.codecs:
         for resolution in options.resolutions:
             for bitrate in options.bitrates:
                 for rcmode in options.rcmodes:
-                    actual_bitrate, psnr, ssim, vmaf = run_single_experiment(
+                    (duration, actual_bitrate, psnr, ssim,
+                        vmaf) = run_single_experiment(
                         ref_filename, ref_resolution, ref_pix_fmt,
                         ref_framerate,
                         codec, resolution, bitrate, rcmode,
                         options.gop_length_frames,
                         options.tmp_dir, options.debug, options.cleanup)
-                    fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
+                    fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
                         in_basename, codec, resolution, rcmode, bitrate,
-                        actual_bitrate, psnr, ssim, vmaf))
+                        duration, actual_bitrate, psnr, ssim, vmaf))
 
 
 def get_psnr(filename, ref, pix_fmt, resolution, debug):
@@ -443,8 +445,11 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
 
     # run encoder
     cmd = [enc_tool, ] + enc_parms
+    ts1 = time.time()
     retcode, stdout, stderr = Command.Run(cmd, env=enc_env, debug=debug)
+    ts2 = time.time()
     assert retcode == 0, stderr
+    return ts2 - ts1
 
 
 def run_single_dec(infile, outfile, codec, debug):
@@ -503,8 +508,8 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     # 3. enc: encode copy with encoder
     enc_basename = gen_basename + CODEC_INFO[codec]['extension']
     enc_filename = os.path.join(tmp_dir, enc_basename)
-    run_single_enc(ref_filename, enc_filename, codec, resolution, bitrate,
-                   rcmode, gop_length_frames, debug)
+    duration = run_single_enc(ref_filename, enc_filename, codec, resolution,
+                              bitrate, rcmode, gop_length_frames, debug)
 
     # 4. dec: decode copy in order to get statistics
     dec_basename = enc_basename + '.y4m'
@@ -552,7 +557,7 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
         os.remove(enc_filename)
         os.remove(dec_filename)
         os.remove(decs_filename)
-    return actual_bitrate, psnr, ssim, vmaf
+    return duration, actual_bitrate, psnr, ssim, vmaf
 
 
 def get_options(argv):

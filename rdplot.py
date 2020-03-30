@@ -25,6 +25,7 @@ PLOT_NAMES = {
     'overshoot': 'Bitrate Overshoot (Percentage)',
     'bitrate': 'Bitrate',
     'actual_bitrate': 'Actual Bitrate',
+    'duration': 'Encoder Duration (sec)',
 }
 
 COLORS = {
@@ -77,6 +78,7 @@ PLOT_TYPES = {
     'bitrate-ssim',  # traditional rd-test
     'bitrate-psnr',  # traditional rd-test
     'bitrate-overshoot',  # traditional rd-test
+    'bitrate-duration',  # traditional rd-test
     'resolution-vmaf',
     'vmaf-bitrate',
     'all',
@@ -149,24 +151,36 @@ def process_file(options):
     if options.plot_type == 'resolution-vmaf':
         plot_resolution_vmaf(options, set1)
     elif options.plot_type == 'vmaf-bitrate':
-        plot_traditional('vmaf', 'actual_bitrate', options, set1, options.simple,
-                          legend_loc='upper left')
+        plot_traditional('vmaf', 'actual_bitrate', options, set1,
+                         options.simple,
+                         legend_loc='upper left')
     elif options.plot_type == 'bitrate-vmaf':
-        plot_traditional('actual_bitrate', 'vmaf', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'vmaf', options, set1,
+                         options.simple)
     elif options.plot_type == 'bitrate-psnr':
-        plot_traditional('actual_bitrate', 'psnr', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'psnr', options, set1,
+                         options.simple)
     elif options.plot_type == 'bitrate-ssim':
-        plot_traditional('actual_bitrate', 'ssim', options, set1, options.simple)
+        plot_traditional('actual_bitrate', 'ssim', options, set1,
+                         options.simple)
     elif options.plot_type == 'bitrate-overshoot':
         plot_traditional('bitrate', 'overshoot', options, set1, options.simple)
+    elif options.plot_type == 'bitrate-duration':
+        plot_traditional('actual_bitrate', 'duration', options, set1,
+                         options.simple)
     elif options.plot_type == 'all':
         # plot_resolution_vmaf(options, set1)
-        plot_traditional('vmaf', 'actual_bitrate', options, set1, options.simple,
-                          legend_loc='upper left')
-        plot_traditional('actual_bitrate', 'vmaf', options, set1, options.simple)
-        plot_traditional('actual_bitrate', 'psnr', options, set1, options.simple)
-        plot_traditional('actual_bitrate', 'ssim', options, set1, options.simple)
-        plot_traditional('bitrate', 'overshoot', options, set1, options.simple)
+        plot_traditional('vmaf', 'actual_bitrate', options, set1,
+                         options.simple,
+                         legend_loc='upper left')
+        plot_traditional('actual_bitrate', 'vmaf', options, set1,
+                         options.simple)
+        plot_traditional('actual_bitrate', 'psnr', options, set1,
+                         options.simple)
+        plot_traditional('actual_bitrate', 'ssim', options, set1,
+                         options.simple)
+        plot_traditional('bitrate', 'overshoot', options, set1,
+                         options.simple)
 
 
 def plot_resolution_vmaf(options, set1):

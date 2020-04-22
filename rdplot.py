@@ -156,18 +156,24 @@ def process_file(options):
                          legend_loc='upper left')
     elif options.plot_type == 'bitrate-vmaf':
         plot_traditional('actual_bitrate', 'vmaf', options, set1,
-                         options.simple)
+                         options.simple,
+                         legend_loc='lower right')
     elif options.plot_type == 'bitrate-psnr':
         plot_traditional('actual_bitrate', 'psnr', options, set1,
-                         options.simple)
+                         options.simple,
+                         legend_loc='lower right')
     elif options.plot_type == 'bitrate-ssim':
         plot_traditional('actual_bitrate', 'ssim', options, set1,
-                         options.simple)
+                         options.simple,
+                         legend_loc='lower right')
     elif options.plot_type == 'bitrate-overshoot':
-        plot_traditional('bitrate', 'overshoot', options, set1, options.simple)
+        plot_traditional('bitrate', 'overshoot', options, set1,
+                         options.simple,
+                         legend_loc='lower right')
     elif options.plot_type == 'bitrate-duration':
         plot_traditional('actual_bitrate', 'duration', options, set1,
-                         options.simple)
+                         options.simple,
+                         legend_loc='upper left')
     elif options.plot_type == 'all':
         # plot_resolution_vmaf(options, set1)
         plot_traditional('vmaf', 'actual_bitrate', options, set1,

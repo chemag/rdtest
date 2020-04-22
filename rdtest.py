@@ -35,7 +35,17 @@ CODEC_INFO = {
         }
     },
     'vp8': {
-        'codecname': 'libvpx',
+        'codecname': 'vp8',
+        'extension': '.webm',
+        'parameters': {
+            # quality parameters
+            'quality': 'realtime',
+            'qmin': 2,
+            'qmax': 56,
+        }
+    },
+    'vp9': {
+        'codecname': 'libvpx-vp9',
         'extension': '.webm',
         'parameters': {
             # quality parameters

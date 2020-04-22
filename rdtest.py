@@ -88,10 +88,10 @@ BITRATES = [
 
 RCMODES = [
     'cbr',
-    'cfr',
+    'crf',
 ]
 
-# TODO(jblome): fix lcevc-x264 CFR mode parameters
+# TODO(jblome): fix lcevc-x264 CRF mode parameters
 RCMODES = [
     'cbr',
 ]

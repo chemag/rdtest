@@ -33,6 +33,7 @@ COLORS = {
     'lcevc-x264': 'red',
     'openh264': 'black',
     'vp8': 'green',
+    'libaom-av1': 'black',
 }
 
 FORMATS = {
@@ -70,6 +71,13 @@ COLORS2 = {
         240: '#008000',
         360: '#00c000',
         480: '#00ff00',
+    },
+    'libaom-av1': {
+        # black
+        120: '#ffc0ff',
+        240: '#ff80ff',
+        360: '#ff40ff',
+        480: '#ff00ff',
     },
 }
 

@@ -28,6 +28,9 @@ CODEC_INFO = {
     'vp8': {
         'extension': '.webm',
     },
+    'libaom-av1': {
+        'extension': '.mp4',
+    },
 }
 
 # resolution set 1
@@ -438,6 +441,16 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         enc_parms += ['-b:v', '%sk' % bitrate]
         enc_parms += ['-quality', 'realtime', '-qmin', '2', '-qmax', '56']
         enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
+    elif codec == 'libaom-av1':
+        # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1
+        enc_parms += ['-c:v', 'libaom-av1']
+        enc_parms += ['-maxrate', '%sk' % bitrate]
+        enc_parms += ['-minrate', '%sk' % bitrate]
+        enc_parms += ['-b:v', '%sk' % bitrate]
+        # this should reduce the encoding time to manageable levels
+        enc_parms += ['-cpu-used', '5']
+        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
+        enc_parms += ['-strict', 'experimental']
 
     # pass audio through
     enc_parms += ['-c:a', 'copy']
@@ -480,7 +493,7 @@ def run_single_dec(infile, outfile, codec, debug):
             dec_parms += ['-y', outfile]
         # perseus decoder requires X context
         dec_env['DISPLAY'] = ':0'
-    elif codec in ('x264', 'openh264', 'vp8'):
+    else:
         dec_parms += ['-y', outfile]
 
     # run decoder

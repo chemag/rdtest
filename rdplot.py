@@ -97,7 +97,8 @@ default_values = {
     'plot_type': 'resolution-vmaf',
     'simple': False,
     'filter': False,
-    'infile': None,
+    'infiles': [],
+    'outfile': None,
 }
 
 
@@ -109,9 +110,9 @@ def get_overshoot(row):
     return (100.0 * (row['actual_bitrate'] - row['bitrate'])) / row['bitrate']
 
 
-def plot_max_min(set1, ycol, ax):
+def plot_max_min(df, ycol, ax):
     bitrate = int(ax.title.get_text().split(' = ')[1])
-    myset = set1[set1.bitrate == bitrate]
+    myset = df[df.bitrate == bitrate]
     max_values = {}
     for codec in myset.codec.unique():
         m = myset[myset.codec == codec]
@@ -139,65 +140,70 @@ def plot_max_min(set1, ycol, ax):
     # ax.vlines(x, y1, y2, color=color)
 
 
-def process_file(options):
-    # read CSV input
-    data = np.genfromtxt(options.infile, delimiter=',',
-                         dtype=None, names=True, encoding=None)
-
+def process_input(options):
     # create pandas dataframe
-    set1 = pd.DataFrame(data, dtype=None)
-    set1['resolution'] = set1.apply(lambda row: get_resolution(row), axis=1)
-    set1['overshoot'] = set1.apply(lambda row: get_overshoot(row), axis=1)
-    set1.sort_values(by=['in_filename', 'codec', 'resolution', 'rcmode'],
-                     inplace=True)
+    df = pd.DataFrame([], dtype=None)
+    # read CSV input
+    for infile in options.infiles:
+        data = np.genfromtxt(infile, delimiter=',', dtype=None, names=True,
+                             encoding=None)
+        # create pandas dataframe
+        df_tmp = pd.DataFrame(data, dtype=None)
+        df = df.append(df_tmp)
+
+    # add resolution and overshoot fields
+    df['resolution'] = df.apply(lambda row: get_resolution(row), axis=1)
+    df['overshoot'] = df.apply(lambda row: get_overshoot(row), axis=1)
+    df.sort_values(by=['in_filename', 'codec', 'resolution', 'rcmode'],
+                   inplace=True)
     if options.filter:
         # filter overshooting values
-        for index, row in set1.iterrows():
+        for index, row in df.iterrows():
             if row['overshoot'] > 10.0:
-                set1.drop(index, inplace=True)
+                df.drop(index, inplace=True)
 
     if options.plot_type == 'resolution-vmaf':
-        plot_resolution_vmaf(options, set1)
+        plot_resolution_vmaf(options, df)
     elif options.plot_type == 'vmaf-bitrate':
-        plot_traditional('vmaf', 'actual_bitrate', options, set1,
+        plot_traditional('vmaf', 'actual_bitrate', options, df,
                          options.simple,
                          legend_loc='upper left')
     elif options.plot_type == 'bitrate-vmaf':
-        plot_traditional('actual_bitrate', 'vmaf', options, set1,
+        plot_traditional('actual_bitrate', 'vmaf', options, df,
                          options.simple,
                          legend_loc='lower right')
     elif options.plot_type == 'bitrate-psnr':
-        plot_traditional('actual_bitrate', 'psnr', options, set1,
+        plot_traditional('actual_bitrate', 'psnr', options, df,
                          options.simple,
                          legend_loc='lower right')
     elif options.plot_type == 'bitrate-ssim':
-        plot_traditional('actual_bitrate', 'ssim', options, set1,
+        plot_traditional('actual_bitrate', 'ssim', options, df,
                          options.simple,
                          legend_loc='lower right')
     elif options.plot_type == 'bitrate-overshoot':
-        plot_traditional('bitrate', 'overshoot', options, set1,
+        plot_traditional('bitrate', 'overshoot', options, df,
                          options.simple,
                          legend_loc='lower right')
     elif options.plot_type == 'bitrate-duration':
-        plot_traditional('actual_bitrate', 'duration', options, set1,
+        plot_traditional('actual_bitrate', 'duration', options, df,
                          options.simple,
                          legend_loc='upper left')
     elif options.plot_type == 'all':
-        # plot_resolution_vmaf(options, set1)
-        plot_traditional('vmaf', 'actual_bitrate', options, set1,
+        # plot_resolution_vmaf(options, df)
+        plot_traditional('vmaf', 'actual_bitrate', options, df,
                          options.simple,
                          legend_loc='upper left')
-        plot_traditional('actual_bitrate', 'vmaf', options, set1,
+        plot_traditional('actual_bitrate', 'vmaf', options, df,
                          options.simple)
-        plot_traditional('actual_bitrate', 'psnr', options, set1,
+        plot_traditional('actual_bitrate', 'psnr', options, df,
                          options.simple)
-        plot_traditional('actual_bitrate', 'ssim', options, set1,
+        plot_traditional('actual_bitrate', 'ssim', options, df,
                          options.simple)
-        plot_traditional('bitrate', 'overshoot', options, set1,
+        plot_traditional('bitrate', 'overshoot', options, df,
                          options.simple)
 
 
-def plot_resolution_vmaf(options, set1):
+def plot_resolution_vmaf(options, df):
     # common plot settings
     sb.set_style('darkgrid', {'axes.facecolor': '.9'})
 
@@ -217,7 +223,7 @@ def plot_resolution_vmaf(options, set1):
             'height': 6,
             'aspect': .75,
             'kind': 'point',
-            'data': set1,
+            'data': df,
             'col_wrap': 3,
             'row_order': RESOLUTIONS,
         }
@@ -227,40 +233,39 @@ def plot_resolution_vmaf(options, set1):
         for ax in fg.axes:
             # make sure all the x-axes show xticks
             plt.setp(ax.get_xticklabels(), visible=True)
-            # plot_max_min(set1, ycol, ax)
+            # plot_max_min(df, ycol, ax)
         # write to disk
-        outfile = '%s.%s-%s.png' % (options.infile, xcol, ycol)
+        outfile = '%s.%s-%s.png' % (options.outfile, xcol, ycol)
         fg.savefig(outfile)
 
 
-def plot_traditional(xcol, ycol, options, set1, simple=False, **kwargs):
+def plot_traditional(xcol, ycol, options, df, simple=False, **kwargs):
     vcol = 'codec'
     pcol = 'resolution'
     if simple:
-        plot_generic_simple(options, set1, xcol, ycol, vcol, pcol,
-                            **kwargs)
+        plot_generic_simple(options, df, xcol, ycol, vcol, pcol, **kwargs)
     else:
-        plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs)
+        plot_generic(options, df, xcol, ycol, vcol, pcol, **kwargs)
 
 
-def plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs):
+def plot_generic(options, df, xcol, ycol, vcol, pcol, **kwargs):
     # plot the results
     fig = plt.figure()
-    num_pcol = set1[pcol].nunique()
+    num_pcol = df[pcol].nunique()
     max_ncols = 3
     ncols = min(num_pcol, max_ncols)
     nrows = math.ceil(num_pcol / max_ncols)
     # different plots
     for plot_id in range(num_pcol):
-        pval = set1[pcol].unique()[plot_id]
-        pset1 = set1[set1[pcol] == pval]
+        pval = df[pcol].unique()[plot_id]
+        pdf = df[df[pcol] == pval]
         ax = fig.add_subplot(nrows, ncols, 1 + plot_id)
         # different lines in each plot
-        for var_id in range(pset1[vcol].nunique()):
-            vval = pset1[vcol].unique()[var_id]
+        for var_id in range(pdf[vcol].nunique()):
+            vval = pdf[vcol].unique()[var_id]
             color = COLORS[vval]
-            xvals = pset1[pset1[vcol] == vval][xcol].tolist()
-            yvals = pset1[pset1[vcol] == vval][ycol].tolist()
+            xvals = pdf[pdf[vcol] == vval][xcol].tolist()
+            yvals = pdf[pdf[vcol] == vval][ycol].tolist()
             label = str(vval)
             fmt = '.-'
             ax.plot(xvals, yvals, fmt, label=label, color=color)
@@ -270,36 +275,36 @@ def plot_generic(options, set1, xcol, ycol, vcol, pcol, **kwargs):
             ax.legend(loc=kwargs.get('legend_loc', 'upper left'))
             ax.set_title('%s: %s' % (pcol, pval))
     # write to disk
-    outfile = '%s.%s-%s.png' % (options.infile, xcol, ycol)
+    outfile = '%s.%s-%s.png' % (options.outfile, xcol, ycol)
     plt.savefig(outfile)
 
 
 # same than plot_generic, but mixing pcol and vcol in the same Figure
-def plot_generic_simple(options, set1, xcol, ycol, vcol, pcol, **kwargs):
+def plot_generic_simple(options, df, xcol, ycol, vcol, pcol, **kwargs):
     # plot the results
     fig = plt.figure()
-    num_pcol = set1[pcol].nunique()
+    num_pcol = df[pcol].nunique()
     # different plots
     ax = fig.add_subplot(1, 1, 1)
     # turn plots into lines
     for plot_id in range(num_pcol):
-        pval = set1[pcol].unique()[plot_id]
-        pset1 = set1[set1[pcol] == pval]
+        pval = df[pcol].unique()[plot_id]
+        pdf = df[df[pcol] == pval]
         fmt = FORMATS[pval]
         # different lines in each plot
-        for var_id in range(pset1[vcol].nunique()):
-            vval = pset1[vcol].unique()[var_id]
+        for var_id in range(pdf[vcol].nunique()):
+            vval = pdf[vcol].unique()[var_id]
             color = COLORS2[vval][pval]
-            xvals = pset1[pset1[vcol] == vval][xcol].tolist()
-            yvals = pset1[pset1[vcol] == vval][ycol].tolist()
+            xvals = pdf[pdf[vcol] == vval][xcol].tolist()
+            yvals = pdf[pdf[vcol] == vval][ycol].tolist()
             label = '%s.%s' % (str(pval), str(vval))
             ax.plot(xvals, yvals, fmt, label=label, color=color)
             ax.set_xlabel(PLOT_NAMES[xcol])
             ax.set_ylabel(PLOT_NAMES[ycol])
             ax.legend(loc=kwargs.get('legend_loc', 'lower right'))
-    ax.set_title('%s' % (list(set1.iterrows())[0][1]['in_filename']))
+    ax.set_title('%s' % (list(df.iterrows())[0][1]['in_filename']))
     # write to disk
-    outfile = '%s.%s-%s.png' % (options.infile, xcol, ycol)
+    outfile = '%s.%s-%s.png' % (options.outfile, xcol, ycol)
     plt.savefig(outfile)
 
 
@@ -339,21 +344,29 @@ def get_options(argv):
                         dest='plot_type', const='bitrate-vmaf',
                         metavar='PLOT_TYPE',
                         help='plot type: bitrate-vmaf',)
-    parser.add_argument('infile', type=str,
-                        default=default_values['infile'],
-                        metavar='input-file',
-                        help='input file',)
+    parser.add_argument('-i', '--infile', action='append', type=str,
+                        dest='infiles', default=default_values['infiles'],
+                        metavar='input-files',
+                        help='input files',)
+    parser.add_argument('outfile', type=str,
+                        default=default_values['outfile'],
+                        metavar='output-file',
+                        help='output file',)
     # do the parsing
     options = parser.parse_args(argv[1:])
-    if options.infile == '-':
-        options.infile = sys.stdin
+    infile_list = []
+    for infile in options.infiles:
+        if infile == '-':
+            infile = sys.stdin
+        infile_list.append(infile)
+    options.infiles = infile_list
     return options
 
 
 def main(argv):
     # parse options
     options = get_options(argv)
-    process_file(options)
+    process_input(options)
 
 
 if __name__ == '__main__':

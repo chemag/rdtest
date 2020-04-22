@@ -17,19 +17,41 @@ import time
 
 CODEC_INFO = {
     'lcevc-x264': {
+        'codecname': 'pplusenc_x264',
         'extension': '.mp4',
+        'parameters': {
+        }
     },
     'x264': {
+        'codecname': 'libx264',
         'extension': '.mp4',
+        'parameters': {
+        }
     },
     'openh264': {
+        'codecname': 'libopenh264',
         'extension': '.mp4',
+        'parameters': {
+        }
     },
     'vp8': {
+        'codecname': 'libvpx',
         'extension': '.webm',
+        'parameters': {
+            # quality parameters
+            'quality': 'realtime',
+            'qmin': 2,
+            'qmax': 56,
+        }
     },
     'libaom-av1': {
+        'codecname': 'libaom-av1',
         'extension': '.mp4',
+        'parameters': {
+            # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1
+            # this should reduce the encoding time to manageable levels
+            'cpu-used': 5,
+        }
     },
 }
 
@@ -139,7 +161,7 @@ class Command(object):
         # run command in the background
         try:
             p, strout = cls.RunBackground(cmd, **kwargs)
-        except:
+        except BaseException:
             xtype, xvalue, _ = sys.exc_info()
             stderr = 'Error running command "%s": %s, %s' % (cls.Cmd2Str(cmd),
                                                              str(xtype),
@@ -247,32 +269,30 @@ def run_experiment(options):
         'Error: %s must have pix_fmt: %s (is %s)' % (
             ref_filename, ref_pix_fmt, get_pix_fmt(ref_filename)))
 
-    # open outfile
-    if options.outfile != sys.stdout:
-        try:
-            fout = open(options.outfile, 'w+')
-        except IOError:
-            print('Error: cannot open file "%s":', options.outfile)
-    else:
-        fout = sys.stdout.buffer
-
-    # run the list of encodings
-    fout.write('# in_filename,codec,resolution,rcmode,bitrate,duration,'
-               'actual_bitrate,psnr,ssim,vmaf\n')
     for codec in options.codecs:
-        for resolution in options.resolutions:
-            for bitrate in options.bitrates:
-                for rcmode in options.rcmodes:
-                    (duration, actual_bitrate, psnr, ssim,
-                        vmaf) = run_single_experiment(
-                        ref_filename, ref_resolution, ref_pix_fmt,
-                        ref_framerate,
-                        codec, resolution, bitrate, rcmode,
-                        options.gop_length_frames,
-                        options.tmp_dir, options.debug, options.cleanup)
-                    fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
-                        in_basename, codec, resolution, rcmode, bitrate,
-                        duration, actual_bitrate, psnr, ssim, vmaf))
+        # open outfile
+        parameters_str = ''
+        for k, v in CODEC_INFO[codec]['parameters']:
+            parameters_str += '%s_%s.' % (k, str(v))
+        outfile = '%s.codec_%s.%stxt' % (options.outfile, codec,
+                                         parameters_str)
+        with open(outfile, 'w') as fout:
+            # run the list of encodings
+            fout.write('# in_filename,codec,resolution,rcmode,bitrate,'
+                       'duration,actual_bitrate,psnr,ssim,vmaf\n')
+            for resolution in options.resolutions:
+                for bitrate in options.bitrates:
+                    for rcmode in options.rcmodes:
+                        (duration, actual_bitrate, psnr, ssim,
+                            vmaf) = run_single_experiment(
+                            ref_filename, ref_resolution, ref_pix_fmt,
+                            ref_framerate,
+                            codec, resolution, bitrate, rcmode,
+                            options.gop_length_frames,
+                            options.tmp_dir, options.debug, options.cleanup)
+                        fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
+                            in_basename, codec, resolution, rcmode, bitrate,
+                            duration, actual_bitrate, psnr, ssim, vmaf))
 
 
 def get_psnr(filename, ref, pix_fmt, resolution, debug):
@@ -355,6 +375,57 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
         return res.groups()[0]
 
 
+def get_lcevc_enc_parms(resolution, bitrate, rcmode, gop_length_frames):
+    enc_parms = []
+    enc_env = None
+    if 'LCEVC_ENC_DIR' in os.environ:
+        lcevc_enc_dir = os.environ['LCEVC_ENC_DIR']
+        enc_tool = os.path.join(lcevc_enc_dir,
+                                os.environ.get('LCEVC_ENCODER', 'ffmpeg'))
+        # check encoder tool is executable
+        assert os.path.isfile(enc_tool) and os.access(enc_tool, os.X_OK), (
+            'Error: %s must be executable' % enc_tool)
+        enc_env = {
+            'LD_LIBRARY_PATH': '%s:%s' % (lcevc_enc_dir,
+                                          os.environ['LD_LIBRARY_PATH']),
+        }
+    enc_parms += ['-c:v', 'pplusenc_x264']
+    enc_parms += ['-base_encoder', 'x264']
+    # no b-frames
+    enc_parms += ['-bf', '0']
+    # medium preset for x264 makes more sense for mobile
+    enc_parms += ['-preset', 'medium']
+    # lcevc-only parameters
+    if rcmode == 'cbr':
+        mode = ''
+        # no b-frames
+        # mode += 'bf=0;'
+        # medium preset for x264 makes more sense for mobile
+        mode += 'preset=medium;'
+        # current lcevc overhead is 13 kbps
+        bitrate = str(int(bitrate) - 13)
+        mode += 'bitrate=%s;' % bitrate
+        # TODO(chema): this should be settable (?)
+        # mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
+        # mode += 'rc_pcrf_base_rc_mode=crf;'
+        # internal setting (best setting for low resolutions)
+        # mode += 'rc_pcrf_sw_loq1=32768;'
+        # GoP length (default is 2x fps)
+        # mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
+        # upsampling
+        mode += 'encoding_upsample=cubic;'
+        # ipp mode
+        mode += 'rc_pcrf_ipp_mode=1;'
+    elif rcmode == 'cfr':
+        # TODO(jblome): fix lcevc-x264 CFR mode parameters
+        AssertionError('# error: cfr needs better parameters')
+    else:
+        AssertionError('# error unsupported rcmode: %s' % rcmode)
+    enc_parms += ['-eil_params', mode]
+    enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
+    return enc_parms, enc_env
+
+
 def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
                    gop_length_frames, debug):
     if debug > 0:
@@ -366,91 +437,28 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
     enc_parms += ['-i', in_filename]
 
     enc_env = None
-    if codec == 'lcevc-x264':
-        if 'LCEVC_ENC_DIR' in os.environ:
-            lcevc_enc_dir = os.environ['LCEVC_ENC_DIR']
-            enc_tool = os.path.join(lcevc_enc_dir,
-                                    os.environ.get('LCEVC_ENCODER', 'ffmpeg'))
-            # check encoder tool is executable
-            assert os.path.isfile(enc_tool) and os.access(enc_tool, os.X_OK), (
-                'Error: %s must be executable' % enc_tool)
-            enc_env = {
-                'LD_LIBRARY_PATH': '%s:%s' % (lcevc_enc_dir,
-                                              os.environ['LD_LIBRARY_PATH']),
-            }
-        enc_parms += ['-c:v', 'pplusenc_x264']
-        enc_parms += ['-base_encoder', 'x264']
-        # no b-frames
-        enc_parms += ['-bf', '0']
-        # medium preset for x264 makes more sense for mobile
-        enc_parms += ['-preset', 'medium']
-        # lcevc-only parameters
-        if rcmode == 'cbr':
-            mode = ''
+    if CODEC_INFO[codec]['codecname'] == 'pplusenc_x264':
+        enc_parms2, enc_env = get_lcevc_enc_parms(resolution, bitrate, rcmode,
+                                                  gop_length_frames)
+        enc_parms.append(enc_parms2)
+    else:
+        enc_parms += ['-c:v', CODEC_INFO[codec]['codecname']]
+        enc_parms += ['-maxrate', '%sk' % bitrate]
+        enc_parms += ['-minrate', '%sk' % bitrate]
+        enc_parms += ['-b:v', '%sk' % bitrate]
+        if CODEC_INFO[codec]['codecname'] in ('libx264',):
             # no b-frames
-            # mode += 'bf=0;'
-            # medium preset for x264 makes more sense for mobile
-            mode += 'preset=medium;'
-            # current lcevc overhead is 13 kbps
-            bitrate = str(int(bitrate) - 13)
-            mode += 'bitrate=%s;' % bitrate
-            # TODO(chema): this should be settable (?)
-            # mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
-            # mode += 'rc_pcrf_base_rc_mode=crf;'
-            # internal setting (best setting for low resolutions)
-            # mode += 'rc_pcrf_sw_loq1=32768;'
-            # GoP length (default is 2x fps)
-            # mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
-            # upsampling
-            mode += 'encoding_upsample=cubic;'
-            # ipp mode
-            mode += 'rc_pcrf_ipp_mode=1;'
-        elif rcmode == 'cfr':
-            # TODO(jblome): fix lcevc-x264 CFR mode parameters
-            AssertionError('# error: cfr needs better parameters')
-        else:
-            AssertionError('# error unsupported rcmode: %s' % rcmode)
-        enc_parms += ['-eil_params', mode]
+            enc_parms += ['-bf', '0']
+        if CODEC_INFO[codec]['codecname'] in ('libx264', 'libopenh264'):
+            # set bufsize to 2x the bitrate
+            bufsize = str(int(bitrate) * 2)
+            enc_parms += ['-bufsize', bufsize]
         enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
-    elif codec == 'x264':
-        enc_parms += ['-c:v', 'libx264']
-        enc_parms += ['-maxrate', '%sk' % bitrate]
-        enc_parms += ['-minrate', '%sk' % bitrate]
-        enc_parms += ['-b:v', '%sk' % bitrate]
-        # no b-frames
-        enc_parms += ['-bf', '0']
-        # set bufsize to 2x the bitrate
-        bufsize = str(int(bitrate) * 2)
-        enc_parms += ['-bufsize', bufsize]
-        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
-    elif codec == 'openh264':
-        enc_parms += ['-c:v', 'libopenh264']
-        enc_parms += ['-maxrate', '%sk' % bitrate]
-        enc_parms += ['-minrate', '%sk' % bitrate]
-        enc_parms += ['-b:v', '%sk' % bitrate]
-        # no b-frames
-        enc_parms += ['-bf', '0']
-        # set bufsize to 2x the bitrate
-        bufsize = str(int(bitrate) * 2)
-        enc_parms += ['-bufsize', bufsize]
-        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
-    elif codec == 'vp8':
-        enc_parms += ['-c:v', 'libvpx']
-        enc_parms += ['-maxrate', '%sk' % bitrate]
-        enc_parms += ['-minrate', '%sk' % bitrate]
-        enc_parms += ['-b:v', '%sk' % bitrate]
-        enc_parms += ['-quality', 'realtime', '-qmin', '2', '-qmax', '56']
-        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
-    elif codec == 'libaom-av1':
-        # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1
-        enc_parms += ['-c:v', 'libaom-av1']
-        enc_parms += ['-maxrate', '%sk' % bitrate]
-        enc_parms += ['-minrate', '%sk' % bitrate]
-        enc_parms += ['-b:v', '%sk' % bitrate]
-        # this should reduce the encoding time to manageable levels
-        enc_parms += ['-cpu-used', '5']
-        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
-        enc_parms += ['-strict', 'experimental']
+        for k, v in CODEC_INFO[codec]['parameters']:
+            enc_parms += ['-%s' % k, str(v)]
+        if CODEC_INFO[codec]['codecname'] in ('libaom-av1',):
+            # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1
+            enc_parms += ['-strict', 'experimental']
 
     # pass audio through
     enc_parms += ['-c:a', 'copy']
@@ -472,11 +480,11 @@ def run_single_dec(infile, outfile, codec, debug):
     # get decoding settings
     dec_tool = 'ffmpeg'
     dec_parms = []
-    if codec == 'lcevc-x264':
+    if CODEC_INFO[codec]['codecname'] == 'pplusenc_x264':
         dec_parms += ['-vcodec', 'lcevc_h264']
     dec_parms += ['-i', infile]
     dec_env = None
-    if codec == 'lcevc-x264':
+    if CODEC_INFO[codec]['codecname'] == 'pplusenc_x264':
         dec_env = {}
         if 'LCEVC_DEC_DIR' in os.environ:
             lcevc_dec_dir = os.environ['LCEVC_DEC_DIR']
@@ -620,7 +628,7 @@ def get_options(argv):
     # list of arguments
     parser.add_argument('--codecs', nargs='+',
                         dest='codecs', default=default_values['codecs'],
-                        help='use CODECS list',)
+                        help='use CODECS list (%s)' % list(CODEC_INFO.keys()),)
     parser.add_argument('--resolutions', nargs='+',
                         dest='resolutions',
                         default=default_values['resolutions'],
@@ -678,10 +686,8 @@ def main(argv):
     # parse options
     options = get_options(argv)
     # get infile/outfile
-    if options.infile == '-':
-        options.infile = sys.stdin
-    if options.outfile == '-':
-        options.outfile = sys.stdout
+    assert options.infile != '-'
+    assert options.outfile != '-'
     # print results
     if options.debug > 0:
         print(options)

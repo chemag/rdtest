@@ -271,15 +271,17 @@ def run_experiment(options):
 
     for codec in options.codecs:
         # open outfile
-        parameters_str = ''
-        for k, v in CODEC_INFO[codec]['parameters']:
-            parameters_str += '%s_%s.' % (k, str(v))
+        parameters_file_str = ''
+        parameters_csv_str = ''
+        for k, v in CODEC_INFO[codec]['parameters'].items():
+            parameters_file_str += '%s_%s.' % (k, str(v))
+            parameters_csv_str += '%s=%s;' % (k, str(v))
         outfile = '%s.codec_%s.%stxt' % (options.outfile, codec,
-                                         parameters_str)
+                                         parameters_file_str)
         with open(outfile, 'w') as fout:
             # run the list of encodings
             fout.write('# in_filename,codec,resolution,rcmode,bitrate,'
-                       'duration,actual_bitrate,psnr,ssim,vmaf\n')
+                       'duration,actual_bitrate,psnr,ssim,vmaf,parameters\n')
             for resolution in options.resolutions:
                 for bitrate in options.bitrates:
                     for rcmode in options.rcmodes:
@@ -290,9 +292,10 @@ def run_experiment(options):
                             codec, resolution, bitrate, rcmode,
                             options.gop_length_frames,
                             options.tmp_dir, options.debug, options.cleanup)
-                        fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
+                        fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
                             in_basename, codec, resolution, rcmode, bitrate,
-                            duration, actual_bitrate, psnr, ssim, vmaf))
+                            duration, actual_bitrate, psnr, ssim, vmaf,
+                            parameters_csv_str))
 
 
 def get_psnr(filename, ref, pix_fmt, resolution, debug):
@@ -454,7 +457,7 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
             bufsize = str(int(bitrate) * 2)
             enc_parms += ['-bufsize', bufsize]
         enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
-        for k, v in CODEC_INFO[codec]['parameters']:
+        for k, v in CODEC_INFO[codec]['parameters'].items():
             enc_parms += ['-%s' % k, str(v)]
         if CODEC_INFO[codec]['codecname'] in ('libaom-av1',):
             # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1

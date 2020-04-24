@@ -94,6 +94,7 @@ PLOT_TYPES = {
     'bitrate-ssim',  # traditional rd-test
     'bitrate-psnr',  # traditional rd-test
     'bitrate-overshoot',  # traditional rd-test
+    'bitrate-actual_bitrate',  # traditional rd-test
     'bitrate-duration',  # traditional rd-test
     'resolution-vmaf',
     'vmaf-bitrate',
@@ -190,6 +191,10 @@ def process_input(options):
                          legend_loc='lower right')
     elif options.plot_type == 'bitrate-overshoot':
         plot_traditional('bitrate', 'overshoot', options, df,
+                         options.simple,
+                         legend_loc='lower right')
+    elif options.plot_type == 'bitrate-actual_bitrate':
+        plot_traditional('bitrate', 'actual_bitrate', options, df,
                          options.simple,
                          legend_loc='lower right')
     elif options.plot_type == 'bitrate-duration':

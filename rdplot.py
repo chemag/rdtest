@@ -30,8 +30,9 @@ PLOT_NAMES = {
 
 COLORS = {
     'x264': 'blue',
-    'lcevc-x264': 'red',
+    'lcevc-x264': 'cyan',
     'openh264': 'yellow',
+    'x265': 'red',
     'vp8': 'green',
     'vp9': 'magenta',
     'libaom-av1': 'black',
@@ -53,11 +54,11 @@ COLORS2 = {
         480: '#0000ff',
     },
     'lcevc-x264': {
-        # red
-        120: '#ffc000',
-        240: '#ff8000',
-        360: '#ff4000',
-        480: '#ff0000',
+        # cyan
+        120: '#c0ffff',
+        240: '#80ffff',
+        360: '#40ffff',
+        480: '#00ffff',
     },
     'openh264': {
         # yellow
@@ -65,6 +66,13 @@ COLORS2 = {
         240: '#ff80ff',
         360: '#ff40ff',
         480: '#ff00ff',
+    },
+    'x265': {
+        # red
+        120: '#ffc000',
+        240: '#ff8000',
+        360: '#ff4000',
+        480: '#ff0000',
     },
     'vp8': {
         # green

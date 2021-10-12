@@ -34,6 +34,12 @@ CODEC_INFO = {
         'parameters': {
         }
     },
+    'x265': {
+        'codecname': 'libx265',
+        'extension': '.mp4',
+        'parameters': {
+        }
+    },
     'vp8': {
         'codecname': 'vp8',
         'extension': '.webm',
@@ -457,10 +463,11 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
         enc_parms += ['-maxrate', '%sk' % bitrate]
         enc_parms += ['-minrate', '%sk' % bitrate]
         enc_parms += ['-b:v', '%sk' % bitrate]
-        if CODEC_INFO[codec]['codecname'] in ('libx264',):
+        if CODEC_INFO[codec]['codecname'] in ('libx264', 'libx265'):
             # no b-frames
             enc_parms += ['-bf', '0']
-        if CODEC_INFO[codec]['codecname'] in ('libx264', 'libopenh264'):
+        if CODEC_INFO[codec]['codecname'] in ('libx264', 'libopenh264',
+                                              'libx265'):
             # set bufsize to 2x the bitrate
             bufsize = str(int(bitrate) * 2)
             enc_parms += ['-bufsize', bufsize]

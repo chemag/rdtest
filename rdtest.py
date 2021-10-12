@@ -40,8 +40,6 @@ CODEC_INFO = {
         'parameters': {
             # quality parameters
             'quality': 'realtime',
-            'qmin': 2,
-            'qmax': 56,
         }
     },
     'vp9': {

@@ -285,13 +285,10 @@ def run_experiment(options):
 
     for codec in options.codecs:
         # open outfile
-        parameters_file_str = ''
         parameters_csv_str = ''
         for k, v in CODEC_INFO[codec]['parameters'].items():
-            parameters_file_str += '%s_%s.' % (k, str(v))
             parameters_csv_str += '%s=%s;' % (k, str(v))
-        outfile = '%s.codec_%s.%stxt' % (options.outfile, codec,
-                                         parameters_file_str)
+        outfile = '%s.codec_%s.csv' % (options.outfile, codec)
         with open(outfile, 'w') as fout:
             # run the list of encodings
             fout.write('# in_filename,codec,resolution,rcmode,bitrate,'

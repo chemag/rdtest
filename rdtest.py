@@ -360,7 +360,7 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
         retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
         assert retcode == 0, stderr
         # [libvmaf @ 0x223d040] VMAF score: 7.812678
-        pattern = r'\[libvmaf.*VMAF score: ([\d\.]+)'
+        pattern = r'.*VMAF score: ([\d\.]+)'
         res = re.search(pattern, stderr)
         assert res
         return res.groups()[0]

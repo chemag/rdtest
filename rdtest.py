@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 
-# LCEVC_ENC_DIR=~/work/lcevc/src/FB-Release-20200203/enc_ffmpeg_linux_ubuntu_LC/ LCEVC_ENCODER=ffmpeg LCEVC_DEC_DIR=~/work/lcevc/src/FB-Release-20200203/ffmpeg_dec/ LCEVC_DECODER=ffmpeg-ER-decoder ~/proj/rdtest/rdtest.py ~/dropbox/fb/video/codec_test_material/Johnny_1280x720_60.y4m --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.drop_20200203.johnny.txt --codecs "lcevc-x264 x264" --bitrates '100000' --resolutions '864x480'
+# LCEVC_ENC_DIR=~/work/lcevc/src/FB-Release-20200203/enc_ffmpeg_linux_ubuntu_LC/ LCEVC_ENCODER=ffmpeg LCEVC_DEC_DIR=~/work/lcevc/src/FB-Release-20200203/ffmpeg_dec/ LCEVC_DECODER=ffmpeg-ER-decoder ~/proj/rdtest/rdtest.py ~/dropbox/fb/video/codec_test_material/Johnny_1280x720_60.y4m --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.drop_20200203.johnny.txt --codecs "lcevc-x264 x264" --bitrates '100000' --resolutions '864x480'  # noqa: E501
 
 CODEC_INFO = {
     'lcevc-x264': {
@@ -155,7 +155,7 @@ class Command(object):
         # get the shell parameter
         shell = type(cmd) in (type(''), type(u''))
         # run the command
-        p = subprocess.Popen(cmd,
+        p = subprocess.Popen(cmd,  # noqa: P204
                              stdin=stdin,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
@@ -349,8 +349,8 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
     ffmpeg_params = ['-filters', ]
     retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
-    for l in stdout.splitlines():
-        if 'libvmaf' in l and 'Calculate the VMAF' in l:
+    for line in stdout.splitlines():
+        if 'libvmaf' in line and 'Calculate the VMAF' in line:
             ffmpeg_supports_libvmaf = True
 
     if ffmpeg_supports_libvmaf:

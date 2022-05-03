@@ -291,8 +291,9 @@ def run_experiment(options):
         outfile = '%s.codec_%s.csv' % (options.outfile, codec)
         with open(outfile, 'w') as fout:
             # run the list of encodings
-            fout.write('# in_filename,codec,resolution,rcmode,bitrate,'
-                       'duration,actual_bitrate,psnr,ssim,vmaf,parameters\n')
+            fout.write('# in_filename,codec,resolution,width,height,rcmode,'
+                       'bitrate,duration,actual_bitrate,psnr,ssim,vmaf,'
+                       'parameters\n')
             for resolution in options.resolutions:
                 for bitrate in options.bitrates:
                     for rcmode in options.rcmodes:
@@ -303,10 +304,13 @@ def run_experiment(options):
                             codec, resolution, bitrate, rcmode,
                             options.gop_length_frames,
                             options.tmp_dir, options.debug, options.cleanup)
-                        fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' % (
-                            in_basename, codec, resolution, rcmode, bitrate,
-                            duration, actual_bitrate, psnr, ssim, vmaf,
-                            parameters_csv_str))
+                        width, height = resolution.split('x')
+                        fout.write('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'
+                                   '%s\n' % (
+                                       in_basename, codec, resolution,
+                                       width, height, rcmode, bitrate,
+                                       duration, actual_bitrate, psnr,
+                                       ssim, vmaf, parameters_csv_str))
 
 
 def get_psnr(filename, ref, pix_fmt, resolution, debug):

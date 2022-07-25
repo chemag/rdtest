@@ -273,7 +273,7 @@ def plot_generic(options, df, xcol, ycol, vcol, pcol, **kwargs):
     # plot the results
     fig = plt.figure()
     num_pcol = df[pcol].nunique()
-    max_ncols = 3
+    max_ncols = 2
     ncols = min(num_pcol, max_ncols)
     nrows = math.ceil(num_pcol / max_ncols)
     # different plots

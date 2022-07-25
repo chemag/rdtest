@@ -293,12 +293,12 @@ def run_experiment(options):
         with open(outfile, 'w') as fout:
             # run the list of encodings
             fout.write('# in_filename,codec,resolution,width,height,rcmode,'
-                       'bitrate,duration,actual_bitrate,psnr,ssim,vmaf,'
-                       'parameters\n')
+                       'bitrate,encoder_duration,actual_bitrate,psnr,ssim,'
+                       'vmaf,parameters\n')
             for resolution in options.resolutions:
                 for bitrate in options.bitrates:
                     for rcmode in options.rcmodes:
-                        (duration, actual_bitrate, psnr, ssim,
+                        (encoder_duration, actual_bitrate, psnr, ssim,
                             vmaf) = run_single_experiment(
                             ref_filename, ref_resolution, ref_pix_fmt,
                             ref_framerate,
@@ -310,7 +310,7 @@ def run_experiment(options):
                                    '%s\n' % (
                                        in_basename, codec, resolution,
                                        width, height, rcmode, bitrate,
-                                       duration, actual_bitrate, psnr,
+                                       encoder_duration, actual_bitrate, psnr,
                                        ssim, vmaf, parameters_csv_str))
 
 
@@ -550,8 +550,9 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
     # 3. enc: encode copy with encoder
     enc_basename = gen_basename + CODEC_INFO[codec]['extension']
     enc_filename = os.path.join(tmp_dir, enc_basename)
-    duration = run_single_enc(ref_filename, enc_filename, codec, resolution,
-                              bitrate, rcmode, gop_length_frames, debug)
+    encoder_duration = run_single_enc(
+        ref_filename, enc_filename, codec, resolution,
+        bitrate, rcmode, gop_length_frames, debug)
 
     # 4. dec: decode copy in order to get statistics
     dec_basename = enc_basename + '.y4m'
@@ -599,7 +600,7 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
         os.remove(enc_filename)
         os.remove(dec_filename)
         os.remove(decs_filename)
-    return duration, actual_bitrate, psnr, ssim, vmaf
+    return encoder_duration, actual_bitrate, psnr, ssim, vmaf
 
 
 def get_options(argv):

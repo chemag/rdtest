@@ -472,7 +472,8 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
             # set bufsize to 2x the bitrate
             bufsize = str(int(bitrate) * 2)
             enc_parms += ['-bufsize', bufsize]
-        enc_parms += ['-s', resolution, '-g', str(gop_length_frames)]
+        enc_parms += ['-s', resolution]
+        enc_parms += ['-g', str(gop_length_frames)]
         for k, v in CODEC_INFO[codec]['parameters'].items():
             enc_parms += ['-%s' % k, str(v)]
         if CODEC_INFO[codec]['codecname'] in ('libaom-av1',):

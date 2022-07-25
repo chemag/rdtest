@@ -16,6 +16,12 @@ import time
 # LCEVC_ENC_DIR=~/work/lcevc/src/FB-Release-20200203/enc_ffmpeg_linux_ubuntu_LC/ LCEVC_ENCODER=ffmpeg LCEVC_DEC_DIR=~/work/lcevc/src/FB-Release-20200203/ffmpeg_dec/ LCEVC_DECODER=ffmpeg-ER-decoder ~/proj/rdtest/rdtest.py ~/dropbox/fb/video/codec_test_material/Johnny_1280x720_60.y4m --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.drop_20200203.johnny.txt --codecs "lcevc-x264 x264" --bitrates '100000' --resolutions '864x480'  # noqa: E501
 
 CODEC_INFO = {
+    'mjpeg': {
+        'codecname': 'mjpeg',
+        'extension': '.mp4',
+        'parameters': {
+        }
+    },
     'lcevc-x264': {
         'codecname': 'pplusenc_x264',
         'extension': '.mp4',
@@ -456,7 +462,12 @@ def run_single_enc(in_filename, outfile, codec, resolution, bitrate, rcmode,
     enc_parms += ['-i', in_filename]
 
     enc_env = None
-    if CODEC_INFO[codec]['codecname'] == 'pplusenc_x264':
+    if CODEC_INFO[codec]['codecname'] == 'mjpeg':
+        enc_parms += ['-c:v', CODEC_INFO[codec]['codecname']]
+        # TODO(chema): use bitrate as quality value (2-31)
+        enc_parms += ['-q:v', '%s' % bitrate]
+        enc_parms += ['-s', resolution]
+    elif CODEC_INFO[codec]['codecname'] == 'pplusenc_x264':
         enc_parms2, enc_env = get_lcevc_enc_parms(resolution, bitrate, rcmode,
                                                   gop_length_frames)
         enc_parms.append(enc_parms2)

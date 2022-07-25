@@ -29,6 +29,7 @@ PLOT_NAMES = {
 }
 
 COLORS = {
+    'mjpeg': 'green',
     'x264': 'blue',
     'lcevc-x264': 'cyan',
     'openh264': 'yellow',
@@ -46,6 +47,13 @@ FORMATS = {
 }
 
 COLORS2 = {
+    'mjpeg': {
+        # green-ish
+        120: '#204020',
+        240: '#208020',
+        360: '#20c020',
+        480: '#20ff20',
+    },
     'x264': {
         # blue
         120: '#00c0ff',

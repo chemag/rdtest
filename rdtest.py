@@ -113,6 +113,7 @@ RCMODES = [
 
 default_values = {
     'debug': 0,
+    'cleanup': True,
     'ref_res': None,
     'ref_pix_fmt': 'yuv420p',
     'vmaf_dir': '/tmp/',
@@ -622,12 +623,17 @@ def get_options(argv):
     parser.add_argument('--quiet', action='store_const',
                         dest='debug', const=-1,
                         help='Zero verbosity',)
-    parser.add_argument('--cleanup', action='store_const',
-                        dest='cleanup', const=True, default=True,
-                        help='Cleanup Files',)
-    parser.add_argument('--no-cleanup', action='store_const',
-                        dest='cleanup', const=False,
-                        help='Cleanup Files',)
+    parser.add_argument(
+        '--cleanup', action='store_const',
+        dest='cleanup', const=True,
+        default=default_values['cleanup'],
+        help='Cleanup Files%s' % (
+            ' [default]' if default_values['cleanup'] else ''),)
+    parser.add_argument(
+        '--no-cleanup', action='store_const',
+        dest='cleanup', const=False,
+        help='Do Not Cleanup Files%s' % (
+            ' [default]' if not default_values['cleanup'] else ''),)
     parser.add_argument('-s', '--resolution', action='store',
                         dest='ref_res', default=default_values['ref_res'],
                         help='force RESOLUTION for the raw video',)

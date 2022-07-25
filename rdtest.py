@@ -359,7 +359,7 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
         ffmpeg_params = [
             '-i', filename,
             '-i', ref,
-            '-lavfi', 'libvmaf=log_path=/tmp/vmaf.txt',
+            '-lavfi', 'libvmaf=model=path=/usr/share/model/vmaf_v0.6.1neg.json:log_path=/tmp/vmaf.txt',
             '-f', 'null', '-',
         ]
         retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)

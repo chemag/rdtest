@@ -237,7 +237,7 @@ def get_duration(infile):
 def get_bitrate(infile):
     size_bytes = os.stat(infile).st_size
     in_duration_secs = get_duration(infile)
-    actual_bitrate = 8. * size_bytes / float(in_duration_secs) / 1000.
+    actual_bitrate = 8. * size_bytes / float(in_duration_secs)
     return actual_bitrate
 
 

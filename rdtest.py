@@ -320,11 +320,13 @@ def run_experiment(options):
                                        ssim, vmaf, parameters_csv_str))
 
 
-def get_psnr(filename, ref, pix_fmt, resolution, debug):
+def get_psnr(filename, ref, pix_fmt, resolution, psnr_log, debug):
+    psnr_log = psnr_log if psnr_log is not None else '/tmp/psnr.txt'
     ffmpeg_params = [
         '-i', filename,
         '-i', ref,
-        '-filter_complex', 'psnr', '-f', 'null', '-',
+        '-filter_complex', 'psnr=stats_file={psnr_log}',
+        '-f', 'null', '-',
     ]
     # [Parsed_psnr_0 @ 0x2b37c80] PSNR y:25.856528 u:38.911172 v:40.838878 \
     # average:27.530116 min:26.081163 max:29.675452
@@ -335,11 +337,13 @@ def get_psnr(filename, ref, pix_fmt, resolution, debug):
     return res.groups()[0]
 
 
-def get_ssim(filename, ref, pix_fmt, resolution, debug):
+def get_ssim(filename, ref, pix_fmt, resolution, ssim_log, debug):
+    ssim_log = ssim_log if ssim_log is not None else '/tmp/ssim.txt'
     ffmpeg_params = [
         '-i', filename,
         '-i', ref,
-        '-filter_complex', 'ssim', '-f', 'null', '-',
+        '-filter_complex', 'ssim=stats_file={ssim_log}',
+        '-f', 'null', '-',
     ]
     # [Parsed_ssim_0 @ 0x2e81e80] SSIM Y:0.742862 (5.898343) U:0.938426 \
     # (12.106034) V:0.970545 (15.308392) All:0.813403 (7.290963)
@@ -350,7 +354,9 @@ def get_ssim(filename, ref, pix_fmt, resolution, debug):
     return res.groups()[0]
 
 
-def get_vmaf(filename, ref, pix_fmt, resolution, debug):
+def get_vmaf(filename, ref, pix_fmt, resolution, vmaf_log, debug):
+    vmaf_log = vmaf_log if vmaf_log is not None else '/tmp/vmaf.txt'
+    VMAF_MODEL = '/usr/share/model/vmaf_v0.6.1neg.json'
     # check whether ffmpeg supports libvmaf
     ffmpeg_supports_libvmaf = False
     ffmpeg_params = ['-filters', ]
@@ -359,13 +365,15 @@ def get_vmaf(filename, ref, pix_fmt, resolution, debug):
     for line in stdout.splitlines():
         if 'libvmaf' in line and 'Calculate the VMAF' in line:
             ffmpeg_supports_libvmaf = True
-
     if ffmpeg_supports_libvmaf:
         # ffmpeg supports libvmaf: use it (way faster)
+        # important: vmaf must be called with videos in the right order
+        # <distorted_video> <reference_video>
+        # https://jina-liu.medium.com/a-practical-guide-for-vmaf-481b4d420d9c
         ffmpeg_params = [
             '-i', filename,
             '-i', ref,
-            '-lavfi', 'libvmaf=model=path=/usr/share/model/vmaf_v0.6.1neg.json:log_path=/tmp/vmaf.txt',
+            '-lavfi', f'libvmaf=model=path={VMAF_MODEL}:log_path={vmaf_log}',
             '-f', 'null', '-',
         ]
         retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
@@ -597,11 +605,11 @@ def run_single_experiment(ref_filename, ref_resolution, ref_pix_fmt,
 
     # get quality scores
     psnr = get_psnr(decs_filename, ref_filename, ref_pix_fmt, ref_resolution,
-                    debug)
+                    None, debug)
     ssim = get_ssim(decs_filename, ref_filename, ref_pix_fmt, ref_resolution,
-                    debug)
+                    None, debug)
     vmaf = get_vmaf(decs_filename, ref_filename, ref_pix_fmt, ref_resolution,
-                    debug)
+                    None, debug)
 
     # get actual bitrate
     actual_bitrate = get_bitrate(enc_filename)

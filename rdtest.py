@@ -159,19 +159,18 @@ def run_experiment(options):
         utils.get_pix_fmt(ref_filename),
     )
 
-    for codec in options.codecs:
-        # open outfile
-        parameters_csv_str = ""
-        for k, v in CODEC_INFO[codec]["parameters"].items():
-            parameters_csv_str += "%s=%s;" % (k, str(v))
-        outfile = "%s.codec_%s.csv" % (options.outfile, codec)
-        with open(outfile, "w") as fout:
-            # run the list of encodings
-            fout.write(
-                "in_filename,codec,resolution,width,height,rcmode,"
-                "bitrate,encoder_duration,actual_bitrate,psnr,ssim,"
-                "vmaf,parameters\n"
-            )
+    with open(options.outfile, "w+") as fout:
+        # run the list of encodings
+        fout.write(
+            "in_filename,codec,resolution,width,height,rcmode,"
+            "bitrate,encoder_duration,actual_bitrate,psnr,ssim,"
+            "vmaf,parameters\n"
+        )
+        for codec in options.codecs:
+            # open outfile
+            parameters_csv_str = ""
+            for k, v in CODEC_INFO[codec]["parameters"].items():
+                parameters_csv_str += "%s=%s;" % (k, str(v))
             for resolution in options.resolutions:
                 for bitrate in options.bitrates:
                     for rcmode in options.rcmodes:

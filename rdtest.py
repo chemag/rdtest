@@ -168,7 +168,7 @@ def run_experiment(options):
         with open(outfile, "w") as fout:
             # run the list of encodings
             fout.write(
-                "# in_filename,codec,resolution,width,height,rcmode,"
+                "in_filename,codec,resolution,width,height,rcmode,"
                 "bitrate,encoder_duration,actual_bitrate,psnr,ssim,"
                 "vmaf,parameters\n"
             )

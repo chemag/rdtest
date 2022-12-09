@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 
 def run(command, **kwargs):
@@ -24,6 +25,7 @@ def run(command, **kwargs):
         print(f"running $ {command}")
     if dry_run:
         return 0, b"stdout", b"stderr"
+    ts1 = time.time()
     p = subprocess.Popen(  # noqa: E501
         command,
         stdin=stdin,
@@ -41,10 +43,11 @@ def run(command, **kwargs):
     else:
         out, err = p.communicate()
     returncode = p.returncode
+    ts2 = time.time()
     # clean up
     del p
     # return results
-    return returncode, out, err
+    return returncode, out, err, ts2 - ts1
 
 
 def ffprobe_run(stream_info, infile):
@@ -53,7 +56,7 @@ def ffprobe_run(stream_info, infile):
     cmd += [
         infile,
     ]
-    retcode, stdout, stderr = run(cmd)
+    retcode, stdout, stderr, _ = run(cmd)
     return stdout.decode("ascii").strip()
 
 
@@ -104,7 +107,7 @@ def get_psnr(filename, ref, pix_fmt, resolution, psnr_log, debug):
     ]
     # [Parsed_psnr_0 @ 0x2b37c80] PSNR y:25.856528 u:38.911172 v:40.838878 \
     # average:27.530116 min:26.081163 max:29.675452
-    retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
     pattern = r"\[Parsed_psnr_0.*PSNR.*y:([\d\.]+)"
     res = re.search(pattern, stderr.decode("ascii"))
     assert res
@@ -126,7 +129,7 @@ def get_ssim(filename, ref, pix_fmt, resolution, ssim_log, debug):
     ]
     # [Parsed_ssim_0 @ 0x2e81e80] SSIM Y:0.742862 (5.898343) U:0.938426 \
     # (12.106034) V:0.970545 (15.308392) All:0.813403 (7.290963)
-    retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
     pattern = r"\[Parsed_ssim_0.*SSIM.*All:([\d\.]+)"
     res = re.search(pattern, stderr.decode("ascii"))
     assert res
@@ -141,7 +144,7 @@ def get_vmaf(filename, ref, pix_fmt, resolution, vmaf_log, debug):
     ffmpeg_params = [
         "-filters",
     ]
-    retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
     for line in stdout.decode("ascii").splitlines():
         if "libvmaf" in line and "Calculate the VMAF" in line:
@@ -162,7 +165,7 @@ def get_vmaf(filename, ref, pix_fmt, resolution, vmaf_log, debug):
         "null",
         "-",
     ]
-    retcode, stdout, stderr = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
     # [libvmaf @ 0x223d040] VMAF score: 7.812678
     pattern = r".*VMAF score: ([\d\.]+)"

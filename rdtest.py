@@ -9,7 +9,6 @@ import argparse
 import os
 import pathlib
 import sys
-import time
 
 import utils
 
@@ -141,7 +140,7 @@ def run_experiment(options):
         ref_pix_fmt,
         ref_filename,
     ]
-    retcode, stdout, stderr = utils.ffmpeg_run(ffmpeg_params, options.debug)
+    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, options.debug)
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == utils.get_resolution(
@@ -320,11 +319,9 @@ def run_single_enc(
     cmd = [
         enc_tool,
     ] + enc_parms
-    ts1 = time.time()
-    retcode, stdout, stderr = utils.run(cmd, env=enc_env, debug=debug)
-    ts2 = time.time()
+    retcode, stdout, stderr, duration = utils.run(cmd, env=enc_env, debug=debug)
     assert retcode == 0, stderr
-    return ts2 - ts1
+    return duration
 
 
 def run_single_dec(infile, outfile, codec, debug):
@@ -366,7 +363,7 @@ def run_single_dec(infile, outfile, codec, debug):
     cmd = [
         dec_tool,
     ] + dec_parms
-    retcode, stdout, stderr = utils.run(cmd, env=dec_env, debug=debug)
+    retcode, stdout, stderr, _ = utils.run(cmd, env=dec_env, debug=debug)
     assert retcode == 0, stderr
 
 
@@ -439,7 +436,7 @@ def run_single_experiment(
         ref_resolution,
         decs_filename,
     ]
-    retcode, stdout, stderr = utils.ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == utils.get_resolution(

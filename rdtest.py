@@ -124,9 +124,9 @@ def run_experiment(options):
     in_framerate = utils.get_framerate(in_filename)
 
     # 2. ref: decode the original file into a raw file
-    ref_basename = in_basename + ".ref_%s.y4m" % in_resolution
+    ref_basename = f"{in_basename}.ref_{in_resolution}.y4m"
     if options.debug > 0:
-        print("# [run] normalize file: %s -> %s" % (in_filename, ref_basename))
+        print(f"# [run] normalize file: {in_filename} -> {ref_basename}")
     ref_filename = os.path.join(options.tmp_dir, ref_basename)
     ref_resolution = in_resolution if options.ref_res is None else options.ref_res
     ref_framerate = in_framerate
@@ -321,7 +321,7 @@ def run_single_enc(
         enc_tool,
     ] + enc_parms
     ts1 = time.time()
-    retcode, stdout, stderr = utils.Command.Run(cmd, env=enc_env, debug=debug)
+    retcode, stdout, stderr = utils.run(cmd, env=enc_env, debug=debug)
     ts2 = time.time()
     assert retcode == 0, stderr
     return ts2 - ts1
@@ -366,7 +366,7 @@ def run_single_dec(infile, outfile, codec, debug):
     cmd = [
         dec_tool,
     ] + dec_parms
-    retcode, stdout, stderr = utils.Command.Run(cmd, env=dec_env, debug=debug)
+    retcode, stdout, stderr = utils.run(cmd, env=dec_env, debug=debug)
     assert retcode == 0, stderr
 
 

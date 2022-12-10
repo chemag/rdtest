@@ -92,7 +92,7 @@ def get_bitrate(infile):
     return actual_bitrate
 
 
-def get_psnr(distorted_filename, ref_filename, pix_fmt, resolution, psnr_log, debug):
+def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
     psnr_log = psnr_log if psnr_log is not None else "/tmp/psnr.txt"
     ffmpeg_params = [
         "-i",
@@ -114,7 +114,7 @@ def get_psnr(distorted_filename, ref_filename, pix_fmt, resolution, psnr_log, de
     return res.groups()[0]
 
 
-def get_ssim(distorted_filename, ref_filename, pix_fmt, resolution, ssim_log, debug):
+def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
     ssim_log = ssim_log if ssim_log is not None else "/tmp/ssim.txt"
     ffmpeg_params = [
         "-i",
@@ -136,7 +136,7 @@ def get_ssim(distorted_filename, ref_filename, pix_fmt, resolution, ssim_log, de
     return res.groups()[0]
 
 
-def get_vmaf(distorted_filename, ref_filename, pix_fmt, resolution, vmaf_log, debug):
+def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
     vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
     VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
     # 1. ensure ffmpeg supports libvmaf

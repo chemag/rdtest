@@ -455,15 +455,9 @@ def run_single_experiment(
     )
 
     # get quality scores
-    psnr = utils.get_psnr(
-        decs_filename, ref_filename, ref_pix_fmt, ref_resolution, None, debug
-    )
-    ssim = utils.get_ssim(
-        decs_filename, ref_filename, ref_pix_fmt, ref_resolution, None, debug
-    )
-    vmaf = utils.get_vmaf(
-        decs_filename, ref_filename, ref_pix_fmt, ref_resolution, None, debug
-    )
+    psnr = utils.get_psnr(decs_filename, ref_filename, None, debug)
+    ssim = utils.get_ssim(decs_filename, ref_filename, None, debug)
+    vmaf = utils.get_vmaf(decs_filename, ref_filename, None, debug)
 
     # get actual bitrate
     actual_bitrate = utils.get_bitrate(enc_filename)

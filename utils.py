@@ -137,11 +137,8 @@ def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
     return res.groups()[0]
 
 
-def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
-    vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
-    VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
-    # 1. ensure ffmpeg supports libvmaf
-    ffmpeg_supports_libvmaf = False
+def ffmpeg_supports_libvmaf(debug):
+    libvmaf_support = False
     ffmpeg_params = [
         "-filters",
     ]
@@ -149,8 +146,16 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
     assert retcode == 0, stderr
     for line in stdout.decode("ascii").splitlines():
         if "libvmaf" in line and "Calculate the VMAF" in line:
-            ffmpeg_supports_libvmaf = True
-    assert ffmpeg_supports_libvmaf, "error: ffmpeg does not support vmaf"
+            libvmaf_support = True
+    return libvmaf_support
+
+
+def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
+    vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
+    VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
+    # ensure ffmpeg supports libvmaf
+    libvmaf_support = ffmpeg_supports_libvmaf(debug)
+    assert libvmaf_support, "error: ffmpeg does not support vmaf"
     # ffmpeg supports libvmaf: use it (way faster)
     # important: vmaf must be called with videos in the right order
     # <distorted_video> <reference_video>

@@ -57,6 +57,7 @@ def ffprobe_run(stream_info, infile):
         infile,
     ]
     retcode, stdout, stderr, _ = run(cmd)
+    assert retcode == 0, f"error running {cmd}\nout: {stdout}\nerr: {stderr}"
     return stdout.decode("ascii").strip()
 
 

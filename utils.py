@@ -108,11 +108,23 @@ def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
     ]
     # [Parsed_psnr_0 @ 0x2b37c80] PSNR y:25.856528 u:38.911172 v:40.838878 \
     # average:27.530116 min:26.081163 max:29.675452
+    # [Parsed_psnr_0 @ 0x35bfa40] PSNR r:30.057250 g:31.984456 b:27.283073 \
+    # average:29.343602 min:29.343602 max:29.343602\n"
     retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
-    pattern = r"\[Parsed_psnr_0.*PSNR.*y:([\d\.]+)"
+    pattern = r"\[Parsed_psnr_0.*PSNR (.+)$"
     res = re.search(pattern, stderr.decode("ascii"))
     assert res
-    return res.groups()[0]
+    # return the right psnr value
+    psnr_dict = {
+        item.split(":")[0]: float(item.split(":")[1])
+        for item in res.groups()[0].split()
+    }
+    if "y" in psnr_dict:
+        # return luma value
+        return psnr_dict["y"]
+    else:
+        # return average value
+        return psnr_dict["average"]
 
 
 def get_ssim(distorted_filename, ref_filename, ssim_log, debug):

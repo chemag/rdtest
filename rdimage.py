@@ -162,7 +162,7 @@ def run_experiment(options):
             else:
                 infile = os.path.join(
                     options.tmp_dir,
-                    os.path.splitext(os.path.basename(orig_infile))[0] + input_format,
+                    os.path.basename(orig_infile) + input_format,
                 )
                 ffmpeg_params = ["-y", "-i", orig_infile, infile]
                 retcode, stdout, stderr, _ = utils.ffmpeg_run(
@@ -182,7 +182,7 @@ def run_experiment(options):
             output_format = CODEC_INFO[codec]["output_format"]
             outfile = os.path.join(
                 options.tmp_dir,
-                os.path.splitext(os.path.basename(infile))[0] + postfix + output_format,
+                os.path.basename(infile) + postfix + output_format,
             )
             cmd = CODEC_INFO[codec]["encode_command"].format(
                 **parameter_dict, infile=infile, outfile=outfile

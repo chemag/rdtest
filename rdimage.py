@@ -150,6 +150,8 @@ def run_experiment(options):
     for orig_infile in infile_list:
         for parameter_vals in parameter_val_list:
             parameter_dict = {k: v for k, v in zip(parameter_name_list, parameter_vals)}
+            if options.debug > 0:
+                print(f"-- infile: {orig_infile} parameters: {parameter_dict}")
             codec = parameter_dict["codec"]
             # 3.0. prepare the encode command
             # adapt input file to the encoder requirements

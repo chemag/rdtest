@@ -190,6 +190,14 @@ def run_experiment(options):
             # 3.1. run the encode command
             # TODO(chema): implement nruns
             retcode, stdout, stderr, duration = utils.run(cmd, debug=options.debug)
+            if (
+                retcode != 0
+                and b"Svt[error]" in stderr
+                and b"8k+ resolution support is limited to M8" in stderr
+            ):
+                # TODO(chema): fix this
+                # svt has issues with 8k+ resolution support based on the preset
+                continue
             assert (
                 retcode == 0
             ), f"error encoding video file\ncmd: {cmd}\nstdout: {stdout}\nstderr: {stderr}"

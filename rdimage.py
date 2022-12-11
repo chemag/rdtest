@@ -100,6 +100,16 @@ def flatten(the_list):
     return the_list[:1] + flatten(the_list[1:])
 
 
+def is_media_file(fname, tmp_dir="/tmp", debug=0):
+    # try to convert image to ppm
+    outfile = os.path.join(tmp_dir, os.path.basename(fname) + ".ppm")
+    ffmpeg_params = ["-y", "-i", fname, outfile]
+    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, debug)
+    if retcode != 0 and debug > 0:
+        print(f"warning: skipping {fname} as no-media file")
+    return retcode == 0
+
+
 def run_experiment(options):
     # check all software is ok
     utils.check_software(options.debug)
@@ -111,14 +121,8 @@ def run_experiment(options):
     infile_list = []
     for fname in glob.glob(f"{options.indir}/*"):
         # check whether the file is a media file
-        try:
-            resolution = utils.get_resolution(fname)
-        except:
-            if options.debug > 0:
-                print(f"warning: skipping {fname} as no-media file")
-            continue
-        assert "x" in resolution, f"error: invalid resolution: {resolution}"
-        infile_list.append(fname)
+        if is_media_file(fname, options.tmp_dir, options.debug):
+            infile_list.append(fname)
 
     # 2. get all the possible combinations of input parameters
     parameter_name_list = [

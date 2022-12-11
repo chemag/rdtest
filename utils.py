@@ -50,13 +50,13 @@ def run(command, **kwargs):
     return returncode, out, err, ts2 - ts1
 
 
-def ffprobe_run(stream_info, infile):
+def ffprobe_run(stream_info, infile, debug=0):
     cmd = ["ffprobe", "-v", "0", "-of", "csv=s=x:p=0", "-select_streams", "v:0"]
     cmd += ["-show_entries", stream_info]
     cmd += [
         infile,
     ]
-    retcode, stdout, stderr, _ = run(cmd)
+    retcode, stdout, stderr, _ = run(cmd, debug=debug)
     assert retcode == 0, f"error running {cmd}\nout: {stdout}\nerr: {stderr}"
     return stdout.decode("ascii").strip()
 
@@ -68,21 +68,21 @@ def ffmpeg_run(params, debug=0):
     return run(cmd, debug=debug)
 
 
-def get_resolution(infile):
-    return ffprobe_run("stream=width,height", infile)
+def get_resolution(infile, debug=0):
+    return ffprobe_run("stream=width,height", infile, debug)
 
 
-def get_pix_fmt(infile):
-    return ffprobe_run("stream=pix_fmt", infile)
+def get_pix_fmt(infile, debug=0):
+    return ffprobe_run("stream=pix_fmt", infile, debug)
 
 
-def get_framerate(infile):
-    return ffprobe_run("stream=r_frame_rate", infile)
+def get_framerate(infile, debug=0):
+    return ffprobe_run("stream=r_frame_rate", infile, debug)
 
 
-def get_duration(infile):
+def get_duration(infile, debug=0):
     # "stream=duration" fails on webm files
-    return ffprobe_run("format=duration", infile)
+    return ffprobe_run("format=duration", infile, debug)
 
 
 # returns bitrate in kbps

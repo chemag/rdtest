@@ -46,7 +46,7 @@ CODEC_INFO = {
         "encode_command": "avifenc -c aom -s {avif_speed} -o {outfile} {infile}",
         "parameters": ["avif_speed"],
         "input_format": ".y4m",
-        "output_format": ".heic",
+        "output_format": ".avif",
     },
     "avif/svt": {
         "format": "avif",

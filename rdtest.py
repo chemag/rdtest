@@ -110,6 +110,9 @@ default_values = {
 
 
 def run_experiment(options):
+    # check all software is ok
+    utils.check_software(options.debug)
+
     # prepare output directory
     pathlib.Path(options.tmp_dir).mkdir(parents=True, exist_ok=True)
 

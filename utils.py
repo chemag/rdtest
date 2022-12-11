@@ -162,12 +162,15 @@ def ffmpeg_supports_libvmaf(debug):
     return libvmaf_support
 
 
-def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
-    vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
-    VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
+def check_software(debug):
     # ensure ffmpeg supports libvmaf
     libvmaf_support = ffmpeg_supports_libvmaf(debug)
     assert libvmaf_support, "error: ffmpeg does not support vmaf"
+
+
+def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
+    vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
+    VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
     # ffmpeg supports libvmaf: use it (way faster)
     # important: vmaf must be called with videos in the right order
     # <distorted_video> <reference_video>

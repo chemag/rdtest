@@ -6,7 +6,32 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
+
+
+# https://gitlab.com/AOMediaCodec/avm/-/blob/main/tools/convexhull_framework/src/Utils.py#L426
+def parse_perf_stats(perfstats_filename):
+    enc_time = 0
+    enc_instr = 0
+    enc_cycles = 0
+    flog = open(perfstats_filename, "r")
+    for line in flog:
+        m = re.search(r"(\S+)\s+instructions", line)
+        if m:
+            enc_instr = int(m.group(1).replace(",", ""))
+        m = re.search(r"(\S+)\s+cycles:u", line)
+        if m:
+            enc_cycles = int(m.group(1).replace(",", ""))
+        m = re.search(r"(\S+)\s+seconds\s+user", line)
+        if m:
+            enc_time = float(m.group(1))
+    perf_stats = {
+        "time_perf": enc_time,
+        "instr": enc_instr,
+        "cycles": enc_cycles,
+    }
+    return perf_stats
 
 
 def run(command, **kwargs):
@@ -19,12 +44,16 @@ def run(command, **kwargs):
     default_close_fds = True if sys.platform == "linux2" else False
     close_fds = kwargs.get("close_fds", default_close_fds)
     shell = kwargs.get("shell", True)
+    get_perf_stats = kwargs.get("get_perf_stats", False)
     if type(command) is list:
         command = subprocess.list2cmdline(command)
     if debug > 0:
         print(f"running $ {command}")
     if dry_run:
         return 0, b"stdout", b"stderr"
+    if get_perf_stats:
+        _, perfstats_filename = tempfile.mkstemp(dir=tempfile.gettempdir())
+        command = f"3>{perfstats_filename} perf stat --log-fd 3 {command}"
     ts1 = time.time()
     p = subprocess.Popen(  # noqa: E501
         command,
@@ -47,6 +76,9 @@ def run(command, **kwargs):
     other = {
         "time_diff": ts2 - ts1,
     }
+    if get_perf_stats:
+        perf_stats = parse_perf_stats(perfstats_filename)
+        other.update(perf_stats)
     # clean up
     del p
     # return results

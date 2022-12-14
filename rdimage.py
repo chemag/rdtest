@@ -193,10 +193,9 @@ def run_experiment(options):
             )
             # 3.1. run the encode command
             # TODO(chema): implement nruns
-            retcode, stdout, stderr, other = utils.run(
-                cmd, debug=options.debug
+            retcode, stdout, stderr, perf_stats = utils.run(
+                cmd, debug=options.debug, get_perf_stats=True
             )
-            duration = other["time_diff"]
             if (
                 retcode != 0
                 and b"Svt[error]" in stderr
@@ -244,11 +243,11 @@ def run_experiment(options):
                     outfilesize,
                     outbpp,
                     ratiobpp,
-                    duration,
                     psnr,
                     ssim,
                     vmaf,
                 ]
+                + list(perf_stats.values())
             )
             results.append(local_results)
     # 4. dump results
@@ -257,7 +256,9 @@ def run_experiment(options):
         header = (
             "codec,infile,resolution,"
             + ",".join(parameter_name_list[1:])
-            + ",infilesize,inbpp,outfilesize,outbpp,ratiobpp,duration,psnr,ssim,vmaf\n"
+            + ",infilesize,inbpp,outfilesize,outbpp,ratiobpp,psnr,ssim,vmaf,"
+            + ",".join(perf_stats.keys())
+            + "\n"
         )
         fout.write(header)
         for local_results in results:

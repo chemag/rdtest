@@ -322,9 +322,9 @@ def run_single_enc(
     cmd = [
         enc_tool,
     ] + enc_parms
-    retcode, stdout, stderr, duration = utils.run(cmd, env=enc_env, debug=debug)
+    retcode, stdout, stderr, other = utils.run(cmd, env=enc_env, debug=debug)
     assert retcode == 0, stderr
-    return duration
+    return other["time_diff"]
 
 
 def run_single_dec(infile, outfile, codec, debug):

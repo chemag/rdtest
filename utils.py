@@ -44,10 +44,13 @@ def run(command, **kwargs):
         out, err = p.communicate()
     returncode = p.returncode
     ts2 = time.time()
+    other = {
+        "time_diff": ts2 - ts1,
+    }
     # clean up
     del p
     # return results
-    return returncode, out, err, ts2 - ts1
+    return returncode, out, err, other
 
 
 def ffprobe_run(stream_info, infile, debug=0):

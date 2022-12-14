@@ -193,7 +193,10 @@ def run_experiment(options):
             )
             # 3.1. run the encode command
             # TODO(chema): implement nruns
-            retcode, stdout, stderr, duration = utils.run(cmd, debug=options.debug)
+            retcode, stdout, stderr, other = utils.run(
+                cmd, debug=options.debug
+            )
+            duration = other["time_diff"]
             if (
                 retcode != 0
                 and b"Svt[error]" in stderr

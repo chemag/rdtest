@@ -77,6 +77,37 @@ BITRATES = [
     35,
 ]
 QUALITIES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+# https://trac.ffmpeg.org/wiki/Encode/H.264
+# https://trac.ffmpeg.org/wiki/Encode/H.265
+PRESETS = [
+    "ultrafast",
+    "superfast",
+    "veryfast",
+    "faster",
+    "fast",
+    "medium",  # default preset
+    "slow",
+    "slower",
+    "veryslow",
+]
+# https://trac.ffmpeg.org/wiki/Encode/AV1
+# higher numbers provide a higher encoding speed
+PRESETS_AV1 = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+]
 
 RCMODES = [
     "cbr",
@@ -96,6 +127,7 @@ default_values = {
     "resolutions": RESOLUTIONS,
     "bitrates": BITRATES,
     "qualities": QUALITIES,
+    "presets": PRESETS,
     "rcmodes": RCMODES,
     "infile": None,
     "outfile": None,
@@ -158,7 +190,7 @@ def run_experiment(options):
         # run the list of encodings
         fout.write(
             "in_filename,codec,resolution,width,height,rcmode,"
-            "quality,encoder_duration,actual_bitrate,psnr,ssim,"
+            "quality,preset,encoder_duration,actual_bitrate,psnr,ssim,"
             "vmaf,parameters\n"
         )
         for codec in options.codecs:
@@ -174,50 +206,61 @@ def run_experiment(options):
                     elif rcmode == "crf":
                         qualities = options.qualities
                     for quality in qualities:
-                        (
-                            encoder_duration,
-                            actual_bitrate,
-                            psnr,
-                            ssim,
-                            vmaf,
-                        ) = run_single_experiment(
-                            ref_filename,
-                            ref_resolution,
-                            ref_pix_fmt,
-                            ref_framerate,
-                            codec,
-                            resolution,
-                            quality,
-                            rcmode,
-                            options.gop_length_frames,
-                            options.tmp_dir,
-                            options.debug,
-                            options.cleanup,
-                        )
-                        width, height = resolution.split("x")
-                        fout.write(
-                            "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-                            "%s\n"
-                            % (
-                                in_basename,
-                                codec,
-                                resolution,
-                                width,
-                                height,
-                                rcmode,
-                                quality,
+                        for preset in options.presets:
+                            (
                                 encoder_duration,
                                 actual_bitrate,
                                 psnr,
                                 ssim,
                                 vmaf,
-                                parameters_csv_str,
+                            ) = run_single_experiment(
+                                ref_filename,
+                                ref_resolution,
+                                ref_pix_fmt,
+                                ref_framerate,
+                                codec,
+                                resolution,
+                                quality,
+                                preset,
+                                rcmode,
+                                options.gop_length_frames,
+                                options.tmp_dir,
+                                options.debug,
+                                options.cleanup,
                             )
-                        )
+                            width, height = resolution.split("x")
+                            fout.write(
+                                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
+                                "%s\n"
+                                % (
+                                    in_basename,
+                                    codec,
+                                    resolution,
+                                    width,
+                                    height,
+                                    rcmode,
+                                    quality,
+                                    preset,
+                                    encoder_duration,
+                                    actual_bitrate,
+                                    psnr,
+                                    ssim,
+                                    vmaf,
+                                    parameters_csv_str,
+                                )
+                            )
 
 
 def run_single_enc(
-    in_filename, outfile, codec, resolution, parameter, rcmode, gop_length_frames, debug
+    in_filename,
+    outfile,
+    codec,
+    resolution,
+    parameter,
+    preset,
+    rcmode,
+    gop_length_frames,
+    debug,
 ):
     if debug > 0:
         print("# [%s] encoding file: %s -> %s" % (codec, in_filename, outfile))
@@ -254,6 +297,7 @@ def run_single_enc(
         if CODEC_INFO[codec]["codecname"] in ("libx264", "libx265"):
             # no b-frames
             enc_parms += ["-bf", "0"]
+        enc_parms += ["-preset", preset]
         enc_parms += ["-s", resolution]
         enc_parms += ["-g", str(gop_length_frames)]
         for k, v in CODEC_INFO[codec]["parameters"].items():
@@ -302,6 +346,7 @@ def run_single_experiment(
     codec,
     resolution,
     quality,
+    preset,
     rcmode,
     gop_length_frames,
     tmp_dir,
@@ -311,7 +356,8 @@ def run_single_experiment(
     if debug > 0:
         print(
             "# [run] run_single_experiment codec: %s resolution: %s "
-            "quality: %s rmcode: %s" % (codec, resolution, quality, rcmode)
+            "quality: %s rcmode: %s preset: %s"
+            % (codec, resolution, quality, rcmode, preset)
         )
     ref_basename = os.path.basename(ref_filename)
 
@@ -320,6 +366,7 @@ def run_single_experiment(
     gen_basename += ".codec_%s" % codec
     gen_basename += ".resolution_%s" % resolution
     gen_basename += ".quality_%s" % quality
+    gen_basename += ".preset_%s" % preset
     gen_basename += ".rcmode_%s" % rcmode
 
     # 3. enc: encode copy with encoder
@@ -331,6 +378,7 @@ def run_single_experiment(
         codec,
         resolution,
         quality,
+        preset,
         rcmode,
         gop_length_frames,
         debug,
@@ -509,6 +557,13 @@ def get_options(argv):
         help="use QUALITIES list",
     )
     parser.add_argument(
+        "--presets",
+        nargs="+",
+        dest="presets",
+        default=default_values["presets"],
+        help="use PRESETS list",
+    )
+    parser.add_argument(
         "--rcmodes",
         nargs="+",
         dest="rcmodes",
@@ -533,7 +588,14 @@ def get_options(argv):
     options = parser.parse_args(argv[1:])
     # post-process list-based arguments
     # support ',' and ' ' to separate list-based options
-    for field in ("codecs", "resolutions", "bitrates", "rcmodes", "qualities"):
+    for field in (
+        "codecs",
+        "resolutions",
+        "bitrates",
+        "rcmodes",
+        "qualities",
+        "presets",
+    ):
         for sep in (",", " "):
             if len(vars(options)[field]) == 1 and sep in vars(options)[field][0]:
                 vars(options)[field] = vars(options)[field][0].split(sep)

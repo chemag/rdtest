@@ -28,7 +28,7 @@ Notes:
   * (1) '`--<setting> val1 val2 val3`'
   * (2) '`--<setting> "val1 val2 val3"`'
   * (3) '`--<setting> val1,val2,val3`'
-* defined codecs so far are `vp8`, (vanilla) `x264`, and `lcevc-x264` (which requires an external codec),
+* defined codecs so far are `mjpeg`, `x264`, `openh264`, `x265`, `vp8`, `vp9`, and `libaom-av1`.
 * "-d" forces debug mode (useful to test the script).
 * the test requires a VMAF distribution, either a separate one (slower), or an ffmpeg binary that supports VMAF (faster).
 
@@ -36,7 +36,7 @@ Notes:
 Once you are happy with the results, run the full experiment.
 
 ```
-$ LCEVC_ENC_DIR=<dir_containing_lcevc_enc> LCEVC_DEC_DIR=<dir_containing_lcevc_dec> LCEVC_DECODER=<name_of_lcevc_dec> VMAF_DIR=<vmaf_dir> ./rdtest.py input.mp4 --tmp-dir /tmp/rdtest_py_tmp -ddd /tmp/results.txt
+$ ./rdtest.py input.mp4 --tmp-dir /tmp/rdtest_py_tmp -ddd /tmp/results.txt
 ```
 
 The results are dumped to a text file, which contains a CSV collection of encoding parameters and video quality results (PSNR, SSIM, and VMAF).
@@ -44,11 +44,11 @@ The results are dumped to a text file, which contains a CSV collection of encodi
 ```
 $ cat /tmp/results.txt
 # in_filename,codec,resolution,rcmode,bitrate,actual_bitrate,psnr,ssim,vmaf
-input.mp4,lcevc-x264,1280x720,cbr,2500,2482.388411876516,36.289466,0.969651,93.990081
-input.mp4,lcevc-x264,1280x720,cbr,1000,1071.2853116602216,34.985670,0.960191,90.600757
-input.mp4,lcevc-x264,1280x720,cbr,560,605.5676738546241,34.229312,0.951959,86.328370
-input.mp4,lcevc-x264,1280x720,cbr,280,305.3348626859802,33.100183,0.938104,77.790853
-input.mp4,lcevc-x264,1280x720,cbr,140,148.407812807236,31.355631,0.915891,62.140263
+input.mp4,x264,1280x720,cbr,2500,2482.388411876516,36.289466,0.969651,93.990081
+input.mp4,x264,1280x720,cbr,1000,1071.2853116602216,34.985670,0.960191,90.600757
+input.mp4,x264,1280x720,cbr,560,605.5676738546241,34.229312,0.951959,86.328370
+input.mp4,x264,1280x720,cbr,280,305.3348626859802,33.100183,0.938104,77.790853
+input.mp4,x264,1280x720,cbr,140,148.407812807236,31.355631,0.915891,62.140263
 ...
 ```
 
@@ -60,10 +60,10 @@ The tool that plots the results of the previous experiments is called `rdplot.py
 ```
 
 ![](results.txt.vmaf.png)
-Figure 1 shows the VMAF results of the x264 vs. lcevc-x264 encoders.
+Figure 1 shows the VMAF results of the x264 vs. openh264 encoders.
 
 ![](results.txt.overshoot.png)
-Figure 2 shows the bitrate accuracy (overshoot) results of the x264 vs. lcevc-x264 encoders.
+Figure 2 shows the bitrate accuracy (overshoot) results of the x264 vs. openh264 encoders.
 
 
 # 3. References

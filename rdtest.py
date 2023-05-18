@@ -13,11 +13,9 @@ import sys
 import utils
 
 
-# LCEVC_ENC_DIR=~/work/lcevc/src/FB-Release-20200203/enc_ffmpeg_linux_ubuntu_LC/ LCEVC_ENCODER=ffmpeg LCEVC_DEC_DIR=~/work/lcevc/src/FB-Release-20200203/ffmpeg_dec/ LCEVC_DECODER=ffmpeg-ER-decoder ~/proj/rdtest/rdtest.py ~/dropbox/fb/video/codec_test_material/Johnny_1280x720_60.y4m --tmp-dir /home/root/tmp/rdtest_py_tmp -ddd /tmp/results.drop_20200203.johnny.txt --codecs "lcevc-x264 x264" --bitrates '100000' --resolutions '864x480'  # noqa: E501
 
 CODEC_INFO = {
     "mjpeg": {"codecname": "mjpeg", "extension": ".mp4", "parameters": {}},
-    "lcevc-x264": {"codecname": "pplusenc_x264", "extension": ".mp4", "parameters": {}},
     "x264": {"codecname": "libx264", "extension": ".mp4", "parameters": {}},
     "openh264": {"codecname": "libopenh264", "extension": ".mp4", "parameters": {}},
     "x265": {"codecname": "libx265", "extension": ".mp4", "parameters": {}},
@@ -68,7 +66,6 @@ RESOLUTIONS = [
 ]
 
 # Notes:
-# * lcevc-x264 encoder barfs when asked to encode a '160x90' file
 # * 720p is not a realistic encoding resolution in mobile due to
 # performance issues
 BITRATES = [
@@ -84,11 +81,6 @@ BITRATES = [
 RCMODES = [
     "cbr",
     "crf",
-]
-
-# TODO(jblome): fix lcevc-x264 CRF mode parameters
-RCMODES = [
-    "cbr",
 ]
 
 
@@ -218,58 +210,6 @@ def run_experiment(options):
                         )
 
 
-def get_lcevc_enc_parms(resolution, bitrate, rcmode, gop_length_frames):
-    enc_parms = []
-    enc_env = None
-    if "LCEVC_ENC_DIR" in os.environ:
-        lcevc_enc_dir = os.environ["LCEVC_ENC_DIR"]
-        enc_tool = os.path.join(
-            lcevc_enc_dir, os.environ.get("LCEVC_ENCODER", "ffmpeg")
-        )
-        # check encoder tool is executable
-        assert os.path.isfile(enc_tool) and os.access(enc_tool, os.X_OK), (
-            "Error: %s must be executable" % enc_tool
-        )
-        enc_env = {
-            "LD_LIBRARY_PATH": "%s:%s" % (lcevc_enc_dir, os.environ["LD_LIBRARY_PATH"]),
-        }
-    enc_parms += ["-c:v", "pplusenc_x264"]
-    enc_parms += ["-base_encoder", "x264"]
-    # no b-frames
-    enc_parms += ["-bf", "0"]
-    # medium preset for x264 makes more sense for mobile
-    enc_parms += ["-preset", "medium"]
-    # lcevc-only parameters
-    if rcmode == "cbr":
-        mode = ""
-        # no b-frames
-        # mode += 'bf=0;'
-        # medium preset for x264 makes more sense for mobile
-        mode += "preset=medium;"
-        # current lcevc overhead is 13 kbps
-        bitrate = str(int(bitrate) - 13)
-        mode += "bitrate=%s;" % bitrate
-        # TODO(chema): this should be settable (?)
-        # mode += 'rc_pcrf_base_rc_mode=%s;' % rcmode
-        # mode += 'rc_pcrf_base_rc_mode=crf;'
-        # internal setting (best setting for low resolutions)
-        # mode += 'rc_pcrf_sw_loq1=32768;'
-        # GoP length (default is 2x fps)
-        # mode += 'rc_pcrf_gop_length=%s;' % gop_length_frames
-        # upsampling
-        mode += "encoding_upsample=cubic;"
-        # ipp mode
-        mode += "rc_pcrf_ipp_mode=1;"
-    elif rcmode == "cfr":
-        # TODO(jblome): fix lcevc-x264 CFR mode parameters
-        AssertionError("# error: cfr needs better parameters")
-    else:
-        AssertionError("# error unsupported rcmode: %s" % rcmode)
-    enc_parms += ["-eil_params", mode]
-    enc_parms += ["-s", resolution, "-g", str(gop_length_frames)]
-    return enc_parms, enc_env
-
-
 def run_single_enc(
     in_filename, outfile, codec, resolution, bitrate, rcmode, gop_length_frames, debug
 ):
@@ -289,11 +229,6 @@ def run_single_enc(
         # TODO(chema): use bitrate as quality value (2-31)
         enc_parms += ["-q:v", "%s" % bitrate]
         enc_parms += ["-s", resolution]
-    elif CODEC_INFO[codec]["codecname"] == "pplusenc_x264":
-        enc_parms2, enc_env = get_lcevc_enc_parms(
-            resolution, bitrate, rcmode, gop_length_frames
-        )
-        enc_parms.append(enc_parms2)
     else:
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         enc_parms += ["-maxrate", "%sk" % bitrate]
@@ -334,33 +269,9 @@ def run_single_dec(infile, outfile, codec, debug):
     # get decoding settings
     dec_tool = "ffmpeg"
     dec_parms = []
-    if CODEC_INFO[codec]["codecname"] == "pplusenc_x264":
-        dec_parms += ["-vcodec", "lcevc_h264"]
     dec_parms += ["-i", infile]
     dec_env = None
-    if CODEC_INFO[codec]["codecname"] == "pplusenc_x264":
-        dec_env = {}
-        if "LCEVC_DEC_DIR" in os.environ:
-            lcevc_dec_dir = os.environ["LCEVC_DEC_DIR"]
-            dec_tool = os.path.join(
-                lcevc_dec_dir, os.environ.get("LCEVC_DECODER", "ffmpeg")
-            )
-            # check decoder tool is executable
-            assert os.path.isfile(dec_tool) and os.access(dec_tool, os.X_OK), (
-                "Error: %s must be executable" % dec_tool
-            )
-            dec_env["LD_LIBRARY_PATH"] = "%s:%s" % (
-                lcevc_dec_dir,
-                os.environ["LD_LIBRARY_PATH"],
-            )
-        if "PPlusDec2Ref" in dec_tool:
-            dec_parms += ["--no-display", "-o", outfile]
-        else:
-            dec_parms += ["-y", outfile]
-        # perseus decoder requires X context
-        dec_env["DISPLAY"] = ":0"
-    else:
-        dec_parms += ["-y", outfile]
+    dec_parms += ["-y", outfile]
 
     # run decoder
     cmd = [

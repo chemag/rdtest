@@ -31,7 +31,6 @@ PLOT_NAMES = {
 COLORS = {
     "mjpeg": "green",
     "x264": "blue",
-    "lcevc-x264": "cyan",
     "openh264": "yellow",
     "x265": "red",
     "vp8": "green",
@@ -60,13 +59,6 @@ COLORS2 = {
         240: "#0080ff",
         360: "#0040ff",
         480: "#0000ff",
-    },
-    "lcevc-x264": {
-        # cyan
-        120: "#c0ffff",
-        240: "#80ffff",
-        360: "#40ffff",
-        480: "#00ffff",
     },
     "openh264": {
         # yellow
@@ -154,8 +146,6 @@ def plot_max_min(df, ycol, ax):
         y = max_values[codec][ycol]
         ax.axhline(y=y, color=COLORS[codec], linestyle=":")
     # add vertical arrow for the best score
-    # x = max_values['lcevc-x264']['resolution']
-    # y1 = max_values['lcevc-x264'][ycol]
     # y2 = max_values['x264'][ycol]
     # ycol_delta = y1 - y2
     # color = 'k' if ycol_delta > 0 else 'r'

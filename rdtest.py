@@ -534,7 +534,7 @@ def get_options(argv):
     options = parser.parse_args(argv[1:])
     # post-process list-based arguments
     # support ',' and ' ' to separate list-based options
-    for field in ("codecs", "resolutions", "bitrates", "rcmodes"):
+    for field in ("codecs", "resolutions", "bitrates", "rcmodes", "qualities"):
         for sep in (",", " "):
             if len(vars(options)[field]) == 1 and sep in vars(options)[field][0]:
                 vars(options)[field] = vars(options)[field][0].split(sep)

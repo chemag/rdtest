@@ -13,7 +13,6 @@ import sys
 import utils
 
 
-
 CODEC_INFO = {
     "mjpeg": {"codecname": "mjpeg", "extension": ".mp4", "parameters": {}},
     "x264": {"codecname": "libx264", "extension": ".mp4", "parameters": {}},

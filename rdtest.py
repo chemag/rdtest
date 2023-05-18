@@ -77,6 +77,7 @@ BITRATES = [
     70,
     35,
 ]
+QUALITIES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
 RCMODES = [
     "cbr",
@@ -95,6 +96,7 @@ default_values = {
     "codecs": CODEC_INFO.keys(),
     "resolutions": RESOLUTIONS,
     "bitrates": BITRATES,
+    "qualities": QUALITIES,
     "rcmodes": RCMODES,
     "infile": None,
     "outfile": None,
@@ -157,7 +159,7 @@ def run_experiment(options):
         # run the list of encodings
         fout.write(
             "in_filename,codec,resolution,width,height,rcmode,"
-            "bitrate,encoder_duration,actual_bitrate,psnr,ssim,"
+            "quality,encoder_duration,actual_bitrate,psnr,ssim,"
             "vmaf,parameters\n"
         )
         for codec in options.codecs:
@@ -166,8 +168,13 @@ def run_experiment(options):
             for k, v in CODEC_INFO[codec]["parameters"].items():
                 parameters_csv_str += "%s=%s;" % (k, str(v))
             for resolution in options.resolutions:
-                for bitrate in options.bitrates:
-                    for rcmode in options.rcmodes:
+                for rcmode in options.rcmodes:
+                    # get quality list
+                    if rcmode == "cbr":
+                        qualities = options.bitrates
+                    elif rcmode == "crf":
+                        qualities = options.qualities
+                    for quality in qualities:
                         (
                             encoder_duration,
                             actual_bitrate,
@@ -181,7 +188,7 @@ def run_experiment(options):
                             ref_framerate,
                             codec,
                             resolution,
-                            bitrate,
+                            quality,
                             rcmode,
                             options.gop_length_frames,
                             options.tmp_dir,
@@ -199,7 +206,7 @@ def run_experiment(options):
                                 width,
                                 height,
                                 rcmode,
-                                bitrate,
+                                quality,
                                 encoder_duration,
                                 actual_bitrate,
                                 psnr,
@@ -211,7 +218,7 @@ def run_experiment(options):
 
 
 def run_single_enc(
-    in_filename, outfile, codec, resolution, bitrate, rcmode, gop_length_frames, debug
+    in_filename, outfile, codec, resolution, parameter, rcmode, gop_length_frames, debug
 ):
     if debug > 0:
         print("# [%s] encoding file: %s -> %s" % (codec, in_filename, outfile))
@@ -227,20 +234,27 @@ def run_single_enc(
     if CODEC_INFO[codec]["codecname"] == "mjpeg":
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         # TODO(chema): use bitrate as quality value (2-31)
-        enc_parms += ["-q:v", "%s" % bitrate]
+        quality = parameter
+        enc_parms += ["-q:v", "%s" % quality]
         enc_parms += ["-s", resolution]
     else:
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
-        enc_parms += ["-maxrate", "%sk" % bitrate]
-        enc_parms += ["-minrate", "%sk" % bitrate]
-        enc_parms += ["-b:v", "%sk" % bitrate]
+        if rcmode == "cbr":
+            bitrate = parameter
+            enc_parms += ["-maxrate", "%sk" % bitrate]
+            enc_parms += ["-minrate", "%sk" % bitrate]
+            enc_parms += ["-b:v", "%sk" % bitrate]
+            if CODEC_INFO[codec]["codecname"] in ("libx264", "libopenh264", "libx265"):
+                # set bufsize to 2x the bitrate
+                bufsize = str(int(bitrate) * 2)
+                enc_parms += ["-bufsize", bufsize]
+        elif rcmode == "crf":
+            quality = parameter
+            enc_parms += ["-crf", "%s" % quality]
+
         if CODEC_INFO[codec]["codecname"] in ("libx264", "libx265"):
             # no b-frames
             enc_parms += ["-bf", "0"]
-        if CODEC_INFO[codec]["codecname"] in ("libx264", "libopenh264", "libx265"):
-            # set bufsize to 2x the bitrate
-            bufsize = str(int(bitrate) * 2)
-            enc_parms += ["-bufsize", bufsize]
         enc_parms += ["-s", resolution]
         enc_parms += ["-g", str(gop_length_frames)]
         for k, v in CODEC_INFO[codec]["parameters"].items():
@@ -288,7 +302,7 @@ def run_single_experiment(
     ref_framerate,
     codec,
     resolution,
-    bitrate,
+    quality,
     rcmode,
     gop_length_frames,
     tmp_dir,
@@ -298,7 +312,7 @@ def run_single_experiment(
     if debug > 0:
         print(
             "# [run] run_single_experiment codec: %s resolution: %s "
-            "bitrate: %s rmcode: %s" % (codec, resolution, bitrate, rcmode)
+            "quality: %s rmcode: %s" % (codec, resolution, quality, rcmode)
         )
     ref_basename = os.path.basename(ref_filename)
 
@@ -306,7 +320,7 @@ def run_single_experiment(
     gen_basename = ref_basename + ".ref_%s" % ref_resolution
     gen_basename += ".codec_%s" % codec
     gen_basename += ".resolution_%s" % resolution
-    gen_basename += ".bitrate_%s" % bitrate
+    gen_basename += ".quality_%s" % quality
     gen_basename += ".rcmode_%s" % rcmode
 
     # 3. enc: encode copy with encoder
@@ -317,7 +331,7 @@ def run_single_experiment(
         enc_filename,
         codec,
         resolution,
-        bitrate,
+        quality,
         rcmode,
         gop_length_frames,
         debug,
@@ -487,6 +501,13 @@ def get_options(argv):
         dest="bitrates",
         default=default_values["bitrates"],
         help="use BITRATES list",
+    )
+    parser.add_argument(
+        "--qualities",
+        nargs="+",
+        dest="qualities",
+        default=default_values["qualities"],
+        help="use QUALITIES list",
     )
     parser.add_argument(
         "--rcmodes",

@@ -117,7 +117,7 @@ RCMODES = [
 
 default_values = {
     "debug": 0,
-    "cleanup": True,
+    "cleanup": 0,
     "ref_res": None,
     "ref_pix_fmt": "yuv420p",
     "vmaf_dir": "/tmp/",
@@ -438,10 +438,11 @@ def run_single_experiment(
     actual_bitrate = utils.get_bitrate(enc_filename)
 
     # clean up experiments files
-    if cleanup:
-        os.remove(enc_filename)
+    if cleanup > 0:
         os.remove(dec_filename)
         os.remove(decs_filename)
+    if cleanup > 1:
+        os.remove(enc_filename)
     return encoder_duration, actual_bitrate, psnr, ssim, vmaf
 
 
@@ -479,17 +480,25 @@ def get_options(argv):
         "--cleanup",
         action="store_const",
         dest="cleanup",
-        const=True,
+        const=1,
         default=default_values["cleanup"],
-        help="Cleanup Files%s" % (" [default]" if default_values["cleanup"] else ""),
+        help="Cleanup Raw Files%s" % (" [default]" if default_values["cleanup"] == 1 else ""),
+    )
+    parser.add_argument(
+        "--full-cleanup",
+        action="store_const",
+        dest="cleanup",
+        const=2,
+        default=default_values["cleanup"],
+        help="Cleanup All Files%s" % (" [default]" if default_values["cleanup"] == 2 else ""),
     )
     parser.add_argument(
         "--no-cleanup",
         action="store_const",
         dest="cleanup",
-        const=False,
+        const=0,
         help="Do Not Cleanup Files%s"
-        % (" [default]" if not default_values["cleanup"] else ""),
+        % (" [default]" if not default_values["cleanup"] == 0 else ""),
     )
     parser.add_argument(
         "-s",

@@ -10,6 +10,10 @@ import tempfile
 import time
 
 
+VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
+VMAF_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
+VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
+
 # https://gitlab.com/AOMediaCodec/avm/-/blob/main/tools/convexhull_framework/src/Utils.py#L426
 def parse_perf_stats(perfstats_filename):
     enc_time = 0
@@ -205,7 +209,6 @@ def check_software(debug):
 
 def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
     vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
-    VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
     # ffmpeg supports libvmaf: use it (way faster)
     # important: vmaf must be called with videos in the right order
     # <distorted_video> <reference_video>

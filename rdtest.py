@@ -571,14 +571,18 @@ def get_options(argv):
         help="use RCMODES list",
     )
     parser.add_argument(
-        "infile",
+        "-i",
+        "--infile",
+        dest="infile",
         type=str,
         default=default_values["infile"],
         metavar="input-file",
         help="input file",
     )
     parser.add_argument(
-        "outfile",
+        "-o",
+        "--outfile",
+        dest="outfile",
         type=str,
         default=default_values["outfile"],
         metavar="output-file",

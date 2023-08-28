@@ -28,7 +28,7 @@ Notes:
   * (1) '`--<setting> val1 val2 val3`'
   * (2) '`--<setting> "val1 val2 val3"`'
   * (3) '`--<setting> val1,val2,val3`'
-* defined codecs so far are `mjpeg`, `x264`, `openh264`, `x265`, `vp8`, `vp9`, and `libaom-av1`.
+* defined codecs so far are `mjpeg`, `x264`, `openh264`, `x265`, `vp8`, `vp9`, `libaom-av1`, and `libsvtav1`.
 * "-d" forces debug mode (useful to test the script).
 * the test requires a VMAF distribution, either a separate one (slower), or an ffmpeg binary that supports VMAF (faster).
 

@@ -45,6 +45,12 @@ CODEC_INFO = {
             "cpu-used": 5,
         },
     },
+    "libsvtav1": {
+        "codecname": "libsvtav1",
+        "extension": ".mp4",
+        "parameters": {
+        },
+    },
 }
 
 # resolution set 1

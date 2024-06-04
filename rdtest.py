@@ -319,7 +319,8 @@ def run_single_enc(
             enc_parms += ["-bf", "0"]
         enc_parms += ["-preset", preset]
         enc_parms += ["-s", resolution]
-        enc_parms += ["-g", str(gop_length_frames)]
+        if gop_length_frames is not None:
+            enc_parms += ["-g", str(gop_length_frames)]
         for k, v in CODEC_INFO[codec]["parameters"].items():
             enc_parms += ["-%s" % k, str(v)]
         if CODEC_INFO[codec]["codecname"] in ("libaom-av1",):

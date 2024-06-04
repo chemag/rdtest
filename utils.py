@@ -150,14 +150,15 @@ def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
     # average:27.530116 min:26.081163 max:29.675452
     # [Parsed_psnr_0 @ 0x35bfa40] PSNR r:30.057250 g:31.984456 b:27.283073 \
     # average:29.343602 min:29.343602 max:29.343602\n"
+    # [Parsed_psnr_0 @ 0x7f57280034c0] PSNR y:38.377112 u:42.865748 v:42.069585
     retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
-    pattern = r"\[Parsed_psnr_0.*PSNR (.+)$"
+    pattern = r"\[Parsed_psnr_0.*PSNR (?P<psnr_line>.+)\n"
     res = re.search(pattern, stderr.decode("ascii"))
     assert res
     # return the right psnr value
     psnr_dict = {
         item.split(":")[0]: float(item.split(":")[1])
-        for item in res.groups()[0].split()
+        for item in res.groups("psnr_line")[0].split()
     }
     if "y" in psnr_dict:
         # return luma value

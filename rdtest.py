@@ -6,6 +6,7 @@
 # pylint: disable-msg=C0103
 
 import argparse
+import itertools
 import os
 import pathlib
 import sys
@@ -17,7 +18,11 @@ CODEC_INFO = {
     "mjpeg": {"codecname": "mjpeg", "extension": ".mp4", "parameters": {}},
     "x264": {"codecname": "libx264", "extension": ".mp4", "parameters": {}},
     "openh264": {"codecname": "libopenh264", "extension": ".mp4", "parameters": {}},
-    "x265": {"codecname": "libx265", "extension": ".mp4", "parameters": {}},
+    "x265": {
+        "codecname": "libx265",
+        "extension": ".mp4",
+        "parameters": {},
+    },
     "vp8": {
         "codecname": "vp8",
         "extension": ".webm",
@@ -48,8 +53,7 @@ CODEC_INFO = {
     "libsvtav1": {
         "codecname": "libsvtav1",
         "extension": ".mp4",
-        "parameters": {
-        },
+        "parameters": {},
     },
 }
 
@@ -199,62 +203,61 @@ def run_experiment(options):
             "quality,preset,encoder_duration,actual_bitrate,psnr,ssim,"
             "vmaf,parameters\n"
         )
-        for codec in options.codecs:
+        for codec, resolution, rcmode, preset in itertools.product(
+            options.codecs, options.resolutions, options.rcmodes, options.presets
+        ):
             # open outfile
             parameters_csv_str = ""
             for k, v in CODEC_INFO[codec]["parameters"].items():
                 parameters_csv_str += "%s=%s;" % (k, str(v))
-            for resolution in options.resolutions:
-                for rcmode in options.rcmodes:
-                    # get quality list
-                    if rcmode == "cbr":
-                        qualities = options.bitrates
-                    elif rcmode == "crf":
-                        qualities = options.qualities
-                    for quality in qualities:
-                        for preset in options.presets:
-                            (
-                                encoder_duration,
-                                actual_bitrate,
-                                psnr,
-                                ssim,
-                                vmaf,
-                            ) = run_single_experiment(
-                                ref_filename,
-                                ref_resolution,
-                                ref_pix_fmt,
-                                ref_framerate,
-                                codec,
-                                resolution,
-                                quality,
-                                preset,
-                                rcmode,
-                                options.gop_length_frames,
-                                options.tmp_dir,
-                                options.debug,
-                                options.cleanup,
-                            )
-                            width, height = resolution.split("x")
-                            fout.write(
-                                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-                                "%s\n"
-                                % (
-                                    in_basename,
-                                    codec,
-                                    resolution,
-                                    width,
-                                    height,
-                                    rcmode,
-                                    quality,
-                                    preset,
-                                    encoder_duration,
-                                    actual_bitrate,
-                                    psnr,
-                                    ssim,
-                                    vmaf,
-                                    parameters_csv_str,
-                                )
-                            )
+            # get quality list
+            if rcmode == "cbr":
+                qualities = options.bitrates
+            elif rcmode == "crf":
+                qualities = options.qualities
+            for quality in qualities:
+                (
+                    encoder_duration,
+                    actual_bitrate,
+                    psnr,
+                    ssim,
+                    vmaf,
+                ) = run_single_experiment(
+                    ref_filename,
+                    ref_resolution,
+                    ref_pix_fmt,
+                    ref_framerate,
+                    codec,
+                    resolution,
+                    quality,
+                    preset,
+                    rcmode,
+                    options.gop_length_frames,
+                    options.tmp_dir,
+                    options.debug,
+                    options.cleanup,
+                )
+                width, height = resolution.split("x")
+                fout.write(
+                    "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
+                    "%s\n"
+                    % (
+                        in_basename,
+                        codec,
+                        resolution,
+                        width,
+                        height,
+                        rcmode,
+                        quality,
+                        preset,
+                        encoder_duration,
+                        actual_bitrate,
+                        psnr,
+                        ssim,
+                        vmaf,
+                        parameters_csv_str,
+                    )
+                )
 
 
 def run_single_enc(

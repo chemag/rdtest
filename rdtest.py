@@ -152,34 +152,67 @@ def run_experiment(options):
     # prepare output directory
     pathlib.Path(options.tmp_dir).mkdir(parents=True, exist_ok=True)
 
+    df = run_experiment_single_file(
+        options.infile,
+        options.codecs,
+        options.resolutions,
+        options.rcmodes,
+        options.presets,
+        options.bitrates,
+        options.qualities,
+        options.ref_res,
+        options.ref_pix_fmt,
+        options.gop_length_frames,
+        options.tmp_dir,
+        options.cleanup,
+        options.debug,
+    )
+    # write up the results
+    df.to_csv(options.outfile, index=False)
+
+
+def run_experiment_single_file(
+    infile,
+    codecs,
+    resolutions,
+    rcmodes,
+    presets,
+    bitrates,
+    qualities,
+    ref_res,
+    ref_pix_fmt,
+    gop_length_frames,
+    tmp_dir,
+    cleanup,
+    debug,
+):
     # 1. in: get infile information
-    in_filename = options.infile
-    if options.debug > 0:
-        print("# [run] parsing file: %s" % (in_filename))
-    assert os.access(options.infile, os.R_OK), "file %s is not readable" % in_filename
-    in_basename = os.path.basename(in_filename)
-    in_resolution = utils.get_resolution(in_filename)
-    in_framerate = utils.get_framerate(in_filename)
+    if debug > 0:
+        print("# [run] parsing file: %s" % (infile))
+    assert os.access(infile, os.R_OK), "file %s is not readable" % infile
+    in_basename = os.path.basename(infile)
+    in_resolution = utils.get_resolution(infile)
+    in_framerate = utils.get_framerate(infile)
 
     # 2. ref: decode the original file into a raw file
     ref_basename = f"{in_basename}.ref_{in_resolution}.y4m"
-    if options.debug > 0:
-        print(f"# [run] normalize file: {in_filename} -> {ref_basename}")
-    ref_filename = os.path.join(options.tmp_dir, ref_basename)
-    ref_resolution = in_resolution if options.ref_res is None else options.ref_res
+    if debug > 0:
+        print(f"# [run] normalize file: {infile} -> {ref_basename}")
+    ref_filename = os.path.join(tmp_dir, ref_basename)
+    ref_resolution = in_resolution if ref_res is None else ref_res
     ref_framerate = in_framerate
-    ref_pix_fmt = options.ref_pix_fmt
+    ref_pix_fmt = ref_pix_fmt
     ffmpeg_params = [
         "-y",
         "-i",
-        options.infile,
+        infile,
         "-s",
         ref_resolution,
         "-pix_fmt",
         ref_pix_fmt,
         ref_filename,
     ]
-    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, options.debug)
+    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == utils.get_resolution(
@@ -198,7 +231,7 @@ def run_experiment(options):
     )
 
     columns = (
-        "in_filename",
+        "infile",
         "codec",
         "resolution",
         "width",
@@ -217,17 +250,16 @@ def run_experiment(options):
 
     # run the list of encodings
     for codec, resolution, rcmode, preset in itertools.product(
-        options.codecs, options.resolutions, options.rcmodes, options.presets
+        codecs, resolutions, rcmodes, presets
     ):
-        # open outfile
         parameters_csv_str = ""
         for k, v in CODEC_INFO[codec]["parameters"].items():
             parameters_csv_str += "%s=%s;" % (k, str(v))
         # get quality list
         if rcmode == "cbr":
-            qualities = options.bitrates
+            qualities = bitrates
         elif rcmode == "crf":
-            qualities = options.qualities
+            qualities = qualities
         for quality in qualities:
             (
                 encoder_duration,
@@ -245,10 +277,10 @@ def run_experiment(options):
                 quality,
                 preset,
                 rcmode,
-                options.gop_length_frames,
-                options.tmp_dir,
-                options.debug,
-                options.cleanup,
+                gop_length_frames,
+                tmp_dir,
+                debug,
+                cleanup,
             )
             width, height = resolution.split("x")
             df.loc[len(df.index)] = (
@@ -267,8 +299,7 @@ def run_experiment(options):
                 vmaf,
                 parameters_csv_str,
             )
-    # write up the results
-    df.to_csv(options.outfile, index=False)
+    return df
 
 
 def run_single_enc(

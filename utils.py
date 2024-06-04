@@ -103,6 +103,7 @@ def ffprobe_run(stream_info, infile, debug=0):
 def ffmpeg_run(params, debug=0):
     cmd = [
         "ffmpeg",
+        "-hide_banner",
     ] + params
     return run(cmd, debug=debug)
 

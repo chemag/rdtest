@@ -8,6 +8,7 @@
 import argparse
 import itertools
 import os
+import pandas as pd
 import pathlib
 import sys
 
@@ -196,68 +197,78 @@ def run_experiment(options):
         utils.get_pix_fmt(ref_filename),
     )
 
-    with open(options.outfile, "w+") as fout:
-        # run the list of encodings
-        fout.write(
-            "in_filename,codec,resolution,width,height,rcmode,"
-            "quality,preset,encoder_duration,actual_bitrate,psnr,ssim,"
-            "vmaf,parameters\n"
-        )
-        for codec, resolution, rcmode, preset in itertools.product(
-            options.codecs, options.resolutions, options.rcmodes, options.presets
-        ):
-            # open outfile
-            parameters_csv_str = ""
-            for k, v in CODEC_INFO[codec]["parameters"].items():
-                parameters_csv_str += "%s=%s;" % (k, str(v))
-            # get quality list
-            if rcmode == "cbr":
-                qualities = options.bitrates
-            elif rcmode == "crf":
-                qualities = options.qualities
-            for quality in qualities:
-                (
-                    encoder_duration,
-                    actual_bitrate,
-                    psnr,
-                    ssim,
-                    vmaf,
-                ) = run_single_experiment(
-                    ref_filename,
-                    ref_resolution,
-                    ref_pix_fmt,
-                    ref_framerate,
-                    codec,
-                    resolution,
-                    quality,
-                    preset,
-                    rcmode,
-                    options.gop_length_frames,
-                    options.tmp_dir,
-                    options.debug,
-                    options.cleanup,
-                )
-                width, height = resolution.split("x")
-                fout.write(
-                    "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-                    "%s\n"
-                    % (
-                        in_basename,
-                        codec,
-                        resolution,
-                        width,
-                        height,
-                        rcmode,
-                        quality,
-                        preset,
-                        encoder_duration,
-                        actual_bitrate,
-                        psnr,
-                        ssim,
-                        vmaf,
-                        parameters_csv_str,
-                    )
-                )
+    columns = (
+        "in_filename",
+        "codec",
+        "resolution",
+        "width",
+        "height",
+        "rcmode",
+        "quality",
+        "preset",
+        "encoder_duration",
+        "actual_bitrate",
+        "psnr",
+        "ssim",
+        "vmaf",
+        "parameters",
+    )
+    df = pd.DataFrame(columns=columns)
+
+    # run the list of encodings
+    for codec, resolution, rcmode, preset in itertools.product(
+        options.codecs, options.resolutions, options.rcmodes, options.presets
+    ):
+        # open outfile
+        parameters_csv_str = ""
+        for k, v in CODEC_INFO[codec]["parameters"].items():
+            parameters_csv_str += "%s=%s;" % (k, str(v))
+        # get quality list
+        if rcmode == "cbr":
+            qualities = options.bitrates
+        elif rcmode == "crf":
+            qualities = options.qualities
+        for quality in qualities:
+            (
+                encoder_duration,
+                actual_bitrate,
+                psnr,
+                ssim,
+                vmaf,
+            ) = run_single_experiment(
+                ref_filename,
+                ref_resolution,
+                ref_pix_fmt,
+                ref_framerate,
+                codec,
+                resolution,
+                quality,
+                preset,
+                rcmode,
+                options.gop_length_frames,
+                options.tmp_dir,
+                options.debug,
+                options.cleanup,
+            )
+            width, height = resolution.split("x")
+            df.loc[len(df.index)] = (
+                in_basename,
+                codec,
+                resolution,
+                width,
+                height,
+                rcmode,
+                quality,
+                preset,
+                encoder_duration,
+                actual_bitrate,
+                psnr,
+                ssim,
+                vmaf,
+                parameters_csv_str,
+            )
+    # write up the results
+    df.to_csv(options.outfile, index=False)
 
 
 def run_single_enc(

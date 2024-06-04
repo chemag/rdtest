@@ -239,6 +239,7 @@ def run_experiment_single_file(
         "resolution",
         "width",
         "height",
+        "framerate",
         "rcmode",
         "quality",
         "preset",
@@ -286,12 +287,14 @@ def run_experiment_single_file(
                 cleanup,
             )
             width, height = resolution.split("x")
+            ref_framerate = utils.get_framerate(ref_filename)
             df.loc[len(df.index)] = (
                 in_basename,
                 codec,
                 resolution,
                 width,
                 height,
+                ref_framerate,
                 rcmode,
                 quality,
                 preset,

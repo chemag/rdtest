@@ -48,8 +48,9 @@ CODEC_INFO = {
         "parameters": {
             # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1
             # this should reduce the encoding time to manageable levels
-            "cpu-used": 5,
+            # "cpu-used": 5,
         },
+        "preset-name": "cpu-used",
     },
     "libsvtav1": {
         "codecname": "libsvtav1",
@@ -354,7 +355,8 @@ def run_single_enc(
         if CODEC_INFO[codec]["codecname"] in ("libx264", "libx265"):
             # no b-frames
             enc_parms += ["-bf", "0"]
-        enc_parms += ["-preset", preset]
+        preset_name = CODEC_INFO[codec].get("preset-name", "preset")
+        enc_parms += [f"-{preset_name}", preset]
         enc_parms += ["-s", resolution]
         if gop_length_frames is not None:
             enc_parms += ["-g", str(gop_length_frames)]

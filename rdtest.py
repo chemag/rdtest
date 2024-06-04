@@ -140,7 +140,7 @@ default_values = {
     "qualities": QUALITIES,
     "presets": PRESETS,
     "rcmodes": RCMODES,
-    "infile": None,
+    "infile_list": [],
     "outfile": None,
 }
 
@@ -152,21 +152,24 @@ def run_experiment(options):
     # prepare output directory
     pathlib.Path(options.tmp_dir).mkdir(parents=True, exist_ok=True)
 
-    df = run_experiment_single_file(
-        options.infile,
-        options.codecs,
-        options.resolutions,
-        options.rcmodes,
-        options.presets,
-        options.bitrates,
-        options.qualities,
-        options.ref_res,
-        options.ref_pix_fmt,
-        options.gop_length_frames,
-        options.tmp_dir,
-        options.cleanup,
-        options.debug,
-    )
+    df = None
+    for infile in options.infile_list:
+        df_tmp = run_experiment_single_file(
+            infile,
+            options.codecs,
+            options.resolutions,
+            options.rcmodes,
+            options.presets,
+            options.bitrates,
+            options.qualities,
+            options.ref_res,
+            options.ref_pix_fmt,
+            options.gop_length_frames,
+            options.tmp_dir,
+            options.cleanup,
+            options.debug,
+        )
+        df = df_tmp if df is None else pd.concat([df, df_tmp])
     # write up the results
     df.to_csv(options.outfile, index=False)
 
@@ -634,11 +637,10 @@ def get_options(argv):
         help="use RCMODES list",
     )
     parser.add_argument(
-        "-i",
-        "--infile",
-        dest="infile",
+        dest="infile_list",
         type=str,
-        default=default_values["infile"],
+        nargs="+",
+        default=default_values["infile_list"],
         metavar="input-file",
         help="input file",
     )
@@ -710,7 +712,6 @@ def main(argv):
     # parse options
     options = get_options(argv)
     # get infile/outfile
-    assert options.infile != "-"
     assert options.outfile != "-"
     # print results
     if options.debug > 0:

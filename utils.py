@@ -10,9 +10,9 @@ import tempfile
 import time
 
 
-VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
 VMAF_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
 VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
+VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
 
 # https://gitlab.com/AOMediaCodec/avm/-/blob/main/tools/convexhull_framework/src/Utils.py#L426
 def parse_perf_stats(perfstats_filename):

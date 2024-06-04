@@ -289,10 +289,10 @@ def run_single_enc(
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         if rcmode == "cbr":
             bitrate = parameter
-            #enc_parms += ["-maxrate", "%sk" % bitrate]
-            #enc_parms += ["-minrate", "%sk" % bitrate]
+            # enc_parms += ["-maxrate", "%sk" % bitrate]
+            # enc_parms += ["-minrate", "%sk" % bitrate]
             enc_parms += ["-b:v", "%sk" % bitrate]
-            #if CODEC_INFO[codec]["codecname"] in ("libx264", "libopenh264", "libx265"):
+            # if CODEC_INFO[codec]["codecname"] in ("libx264", "libopenh264", "libx265"):
             #    # set bufsize to 2x the bitrate
             #    bufsize = str(int(bitrate) * 2)
             #    enc_parms += ["-bufsize", bufsize]
@@ -488,7 +488,8 @@ def get_options(argv):
         dest="cleanup",
         const=1,
         default=default_values["cleanup"],
-        help="Cleanup Raw Files%s" % (" [default]" if default_values["cleanup"] == 1 else ""),
+        help="Cleanup Raw Files%s"
+        % (" [default]" if default_values["cleanup"] == 1 else ""),
     )
     parser.add_argument(
         "--full-cleanup",
@@ -496,7 +497,8 @@ def get_options(argv):
         dest="cleanup",
         const=2,
         default=default_values["cleanup"],
-        help="Cleanup All Files%s" % (" [default]" if default_values["cleanup"] == 2 else ""),
+        help="Cleanup All Files%s"
+        % (" [default]" if default_values["cleanup"] == 2 else ""),
     )
     parser.add_argument(
         "--no-cleanup",

@@ -202,7 +202,11 @@ def parse_psnr_log(psnr_log):
 
 
 def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
-    ssim_log = ssim_log if ssim_log is not None else "/tmp/ssim.txt"
+    ssim_log = (
+        ssim_log
+        if ssim_log is not None
+        else tempfile.NamedTemporaryFile(prefix="ssim.", suffix=".log").name
+    )
     ffmpeg_params = [
         "-i",
         distorted_filename,
@@ -214,13 +218,51 @@ def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
         "null",
         "-",
     ]
-    # [Parsed_ssim_0 @ 0x2e81e80] SSIM Y:0.742862 (5.898343) U:0.938426 \
-    # (12.106034) V:0.970545 (15.308392) All:0.813403 (7.290963)
     retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
-    pattern = r"\[Parsed_ssim_0.*SSIM.*All:([\d\.]+)"
-    res = re.search(pattern, stderr.decode("ascii"))
-    assert res
-    return res.groups()[0]
+    return parse_ssim_log(ssim_log)
+
+
+def parse_ssim_log(ssim_log):
+    """Parse log/output files and return quality score"""
+    with open(ssim_log) as fd:
+        data = fd.read()
+    # n:1 Y:0.985329 U:0.982885 V:0.985790 All:0.984998 (18.238620)
+    # n:2 Y:0.979854 U:0.979630 V:0.983818 All:0.980478 (17.094663)
+    ssim_values = []
+    for line in data.splitlines():
+        # break line in k:v strings
+        line_items = list(item for item in line.split(" ") if ":" in item)
+        ssim_values.append(
+            {item.split(":")[0]: item.split(":")[1] for item in line_items}
+        )
+    ssim_y_list = np.array(list(float(item["Y"]) for item in ssim_values))
+    ssim_u_list = np.array(list(float(item["U"]) for item in ssim_values))
+    ssim_v_list = np.array(list(float(item["V"]) for item in ssim_values))
+    ssim_dict = {
+        "y_mean": ssim_y_list.mean(),
+        "u_mean": ssim_u_list.mean(),
+        "v_mean": ssim_v_list.mean(),
+    }
+    # add some percentiles
+    ssim_dict.update(
+        {
+            f"y_p{percentile}": np.percentile(ssim_y_list, percentile)
+            for percentile in PERCENTILE_LIST
+        }
+    )
+    ssim_dict.update(
+        {
+            f"u_p{percentile}": np.percentile(ssim_u_list, percentile)
+            for percentile in PERCENTILE_LIST
+        }
+    )
+    ssim_dict.update(
+        {
+            f"v_p{percentile}": np.percentile(ssim_v_list, percentile)
+            for percentile in PERCENTILE_LIST
+        }
+    )
+    return ssim_dict
 
 
 def ffmpeg_supports_libvmaf(debug):

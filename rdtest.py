@@ -273,7 +273,33 @@ def run_experiment_single_file(
         "psnr_v_p90",
         "psnr_v_p95",
         "psnr_v_p100",
-        "ssim",
+        "ssim_y_mean",
+        "ssim_u_mean",
+        "ssim_v_mean",
+        "ssim_y_p0",
+        "ssim_y_p5",
+        "ssim_y_p10",
+        "ssim_y_p25",
+        "ssim_y_p75",
+        "ssim_y_p90",
+        "ssim_y_p95",
+        "ssim_y_p100",
+        "ssim_u_p0",
+        "ssim_u_p5",
+        "ssim_u_p10",
+        "ssim_u_p25",
+        "ssim_u_p75",
+        "ssim_u_p90",
+        "ssim_u_p95",
+        "ssim_u_p100",
+        "ssim_v_p0",
+        "ssim_v_p5",
+        "ssim_v_p10",
+        "ssim_v_p25",
+        "ssim_v_p75",
+        "ssim_v_p90",
+        "ssim_v_p95",
+        "ssim_v_p100",
         "vmaf_mean",
         "vmaf_harmonic_mean",
         "vmaf_p0",
@@ -305,7 +331,7 @@ def run_experiment_single_file(
                 encoder_duration,
                 actual_bitrate,
                 psnr_dict,
-                ssim,
+                ssim_dict,
                 vmaf_dict,
             ) = run_single_experiment(
                 ref_filename,
@@ -337,7 +363,7 @@ def run_experiment_single_file(
                 encoder_duration,
                 actual_bitrate,
                 *psnr_dict.values(),
-                ssim,
+                *ssim_dict.values(),
                 *vmaf_dict.values(),
                 parameters_csv_str,
             )
@@ -526,7 +552,7 @@ def run_single_experiment(
 
     # get quality scores
     psnr_dict = utils.get_psnr(decs_filename, ref_filename, None, debug)
-    ssim = utils.get_ssim(decs_filename, ref_filename, None, debug)
+    ssim_dict = utils.get_ssim(decs_filename, ref_filename, None, debug)
     vmaf_dict = utils.get_vmaf(decs_filename, ref_filename, None, debug)
 
     # get actual bitrate
@@ -538,7 +564,7 @@ def run_single_experiment(
         os.remove(decs_filename)
     if cleanup > 1:
         os.remove(enc_filename)
-    return encoder_duration, actual_bitrate, psnr_dict, ssim, vmaf_dict
+    return encoder_duration, actual_bitrate, psnr_dict, ssim_dict, vmaf_dict
 
 
 def get_options(argv):

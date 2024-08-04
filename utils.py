@@ -138,7 +138,11 @@ def get_bitrate(infile):
 
 
 def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
-    psnr_log = psnr_log if psnr_log is not None else "/tmp/psnr.txt"
+    psnr_log = (
+        psnr_log
+        if psnr_log is not None
+        else tempfile.NamedTemporaryFile(prefix="psnr.", suffix=".log").name
+    )
     ffmpeg_params = [
         "-i",
         distorted_filename,
@@ -150,26 +154,51 @@ def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
         "null",
         "-",
     ]
-    # [Parsed_psnr_0 @ 0x2b37c80] PSNR y:25.856528 u:38.911172 v:40.838878 \
-    # average:27.530116 min:26.081163 max:29.675452
-    # [Parsed_psnr_0 @ 0x35bfa40] PSNR r:30.057250 g:31.984456 b:27.283073 \
-    # average:29.343602 min:29.343602 max:29.343602\n"
-    # [Parsed_psnr_0 @ 0x7f57280034c0] PSNR y:38.377112 u:42.865748 v:42.069585
     retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
-    pattern = r"\[Parsed_psnr_0.*PSNR (?P<psnr_line>.+)\n"
-    res = re.search(pattern, stderr.decode("ascii"))
-    assert res
-    # return the right psnr value
+    return parse_psnr_log(psnr_log)
+
+
+def parse_psnr_log(psnr_log):
+    """Parse log/output files and return quality score"""
+    with open(psnr_log) as fd:
+        data = fd.read()
+    # n:1 mse_avg:2.59 mse_y:3.23 mse_u:1.61 mse_v:1.03 psnr_avg:44.00 psnr_y:43.04 psnr_u:46.07 psnr_v:48.02
+    # n:2 mse_avg:3.77 mse_y:4.87 mse_u:1.96 mse_v:1.20 psnr_avg:42.36 psnr_y:41.25 psnr_u:45.22 psnr_v:47.35
+    psnr_values = []
+    for line in data.splitlines():
+        # break line in k:v strings
+        line_items = list(item for item in line.split(" ") if ":" in item)
+        psnr_values.append(
+            {item.split(":")[0]: item.split(":")[1] for item in line_items}
+        )
+    psnr_y_list = np.array(list(float(item["psnr_y"]) for item in psnr_values))
+    psnr_u_list = np.array(list(float(item["psnr_u"]) for item in psnr_values))
+    psnr_v_list = np.array(list(float(item["psnr_v"]) for item in psnr_values))
     psnr_dict = {
-        item.split(":")[0]: float(item.split(":")[1])
-        for item in res.groups("psnr_line")[0].split()
+        "y_mean": psnr_y_list.mean(),
+        "u_mean": psnr_u_list.mean(),
+        "v_mean": psnr_v_list.mean(),
     }
-    if "y" in psnr_dict:
-        # return luma value
-        return psnr_dict["y"]
-    else:
-        # return average value
-        return psnr_dict["average"]
+    # add some percentiles
+    psnr_dict.update(
+        {
+            f"y_p{percentile}": np.percentile(psnr_y_list, percentile)
+            for percentile in PERCENTILE_LIST
+        }
+    )
+    psnr_dict.update(
+        {
+            f"u_p{percentile}": np.percentile(psnr_u_list, percentile)
+            for percentile in PERCENTILE_LIST
+        }
+    )
+    psnr_dict.update(
+        {
+            f"v_p{percentile}": np.percentile(psnr_v_list, percentile)
+            for percentile in PERCENTILE_LIST
+        }
+    )
+    return psnr_dict
 
 
 def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
@@ -255,7 +284,7 @@ def parse_vmaf_output(vmaf_json):
     vmaf_dict.update(
         {
             f"p{percentile}": np.percentile(vmaf_list, percentile)
-            for percentile in VMAF_PERCENTILE_LIST
+            for percentile in PERCENTILE_LIST
         }
     )
     return vmaf_dict

@@ -246,7 +246,33 @@ def run_experiment_single_file(
         "preset",
         "encoder_duration",
         "actual_bitrate",
-        "psnr",
+        "psnr_y_mean",
+        "psnr_u_mean",
+        "psnr_v_mean",
+        "psnr_y_p0",
+        "psnr_y_p5",
+        "psnr_y_p10",
+        "psnr_y_p25",
+        "psnr_y_p75",
+        "psnr_y_p90",
+        "psnr_y_p95",
+        "psnr_y_p100",
+        "psnr_u_p0",
+        "psnr_u_p5",
+        "psnr_u_p10",
+        "psnr_u_p25",
+        "psnr_u_p75",
+        "psnr_u_p90",
+        "psnr_u_p95",
+        "psnr_u_p100",
+        "psnr_v_p0",
+        "psnr_v_p5",
+        "psnr_v_p10",
+        "psnr_v_p25",
+        "psnr_v_p75",
+        "psnr_v_p90",
+        "psnr_v_p95",
+        "psnr_v_p100",
         "ssim",
         "vmaf_mean",
         "vmaf_harmonic_mean",
@@ -278,7 +304,7 @@ def run_experiment_single_file(
             (
                 encoder_duration,
                 actual_bitrate,
-                psnr,
+                psnr_dict,
                 ssim,
                 vmaf_dict,
             ) = run_single_experiment(
@@ -310,7 +336,7 @@ def run_experiment_single_file(
                 preset,
                 encoder_duration,
                 actual_bitrate,
-                psnr,
+                *psnr_dict.values(),
                 ssim,
                 *vmaf_dict.values(),
                 parameters_csv_str,
@@ -499,7 +525,7 @@ def run_single_experiment(
     )
 
     # get quality scores
-    psnr = utils.get_psnr(decs_filename, ref_filename, None, debug)
+    psnr_dict = utils.get_psnr(decs_filename, ref_filename, None, debug)
     ssim = utils.get_ssim(decs_filename, ref_filename, None, debug)
     vmaf_dict = utils.get_vmaf(decs_filename, ref_filename, None, debug)
 
@@ -512,7 +538,7 @@ def run_single_experiment(
         os.remove(decs_filename)
     if cleanup > 1:
         os.remove(enc_filename)
-    return encoder_duration, actual_bitrate, psnr, ssim, vmaf_dict
+    return encoder_duration, actual_bitrate, psnr_dict, ssim, vmaf_dict
 
 
 def get_options(argv):

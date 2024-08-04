@@ -250,14 +250,14 @@ def run_experiment_single_file(
         "ssim",
         "vmaf_mean",
         "vmaf_harmonic_mean",
-        "vmaf_min",
-        "vmaf_max",
+        "vmaf_p0",
         "vmaf_p5",
         "vmaf_p10",
         "vmaf_p25",
         "vmaf_p75",
         "vmaf_p90",
         "vmaf_p95",
+        "vmaf_p100",
         "parameters",
     )
     df = pd.DataFrame(columns=columns)

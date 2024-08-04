@@ -11,7 +11,7 @@ import sys
 import tempfile
 import time
 
-VMAF_PERCENTILE_LIST = (5, 10, 25, 75, 90, 95)
+PERCENTILE_LIST = (0, 5, 10, 25, 75, 90, 95, 100)
 
 VMAF_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
 VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
@@ -246,8 +246,6 @@ def parse_vmaf_output(vmaf_json):
     vmaf_dict = {
         "mean": data["pooled_metrics"]["vmaf"]["mean"],
         "harmonic_mean": data["pooled_metrics"]["vmaf"]["harmonic_mean"],
-        "min": data["pooled_metrics"]["vmaf"]["min"],
-        "max": data["pooled_metrics"]["vmaf"]["max"],
     }
     # get per-frame VMAF values
     vmaf_list = np.array(

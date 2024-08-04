@@ -2,6 +2,8 @@
 
 """utils.py module description."""
 
+import json
+import numpy as np
 import os
 import re
 import subprocess
@@ -9,10 +11,12 @@ import sys
 import tempfile
 import time
 
+VMAF_PERCENTILE_LIST = (5, 10, 25, 75, 90, 95)
 
 VMAF_MODEL = "/usr/share/model/vmaf_4k_v0.6.1.json"
 VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1.json"
 VMAF_MODEL = "/usr/share/model/vmaf_v0.6.1neg.json"
+
 
 # https://gitlab.com/AOMediaCodec/avm/-/blob/main/tools/convexhull_framework/src/Utils.py#L426
 def parse_perf_stats(perfstats_filename):
@@ -209,8 +213,12 @@ def check_software(debug):
     assert libvmaf_support, "error: ffmpeg does not support vmaf"
 
 
-def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
-    vmaf_log = vmaf_log if vmaf_log is not None else "/tmp/vmaf.txt"
+def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
+    vmaf_json = (
+        vmaf_json
+        if vmaf_json is not None
+        else tempfile.NamedTemporaryFile(prefix="vmaf.", suffix=".json").name
+    )
     # ffmpeg supports libvmaf: use it (way faster)
     # important: vmaf must be called with videos in the right order
     # <distorted_video> <reference_video>
@@ -221,15 +229,35 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_log, debug):
         "-i",
         ref_filename,
         "-lavfi",
-        f"libvmaf=model=path={VMAF_MODEL}:log_path={vmaf_log}",
+        f"libvmaf=model=path={VMAF_MODEL}:log_fmt=json:log_path={vmaf_json}",
         "-f",
         "null",
         "-",
     ]
-    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
+    retcode, _, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
-    # [libvmaf @ 0x223d040] VMAF score: 7.812678
-    pattern = r".*VMAF score: ([\d\.]+)"
-    res = re.search(pattern, stderr.decode("ascii"))
-    assert res
-    return res.groups()[0]
+    return parse_vmaf_output(vmaf_json)
+
+
+def parse_vmaf_output(vmaf_json):
+    """Parse log/output files and return quality score"""
+    with open(vmaf_json) as fd:
+        data = json.load(fd)
+    vmaf_dict = {
+        "mean": data["pooled_metrics"]["vmaf"]["mean"],
+        "harmonic_mean": data["pooled_metrics"]["vmaf"]["harmonic_mean"],
+        "min": data["pooled_metrics"]["vmaf"]["min"],
+        "max": data["pooled_metrics"]["vmaf"]["max"],
+    }
+    # get per-frame VMAF values
+    vmaf_list = np.array(
+        list(data["frames"][i]["metrics"]["vmaf"] for i in range(len(data["frames"])))
+    )
+    # add some percentiles
+    vmaf_dict.update(
+        {
+            f"p{percentile}": np.percentile(vmaf_list, percentile)
+            for percentile in VMAF_PERCENTILE_LIST
+        }
+    )
+    return vmaf_dict

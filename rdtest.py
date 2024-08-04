@@ -248,7 +248,16 @@ def run_experiment_single_file(
         "actual_bitrate",
         "psnr",
         "ssim",
-        "vmaf",
+        "vmaf_mean",
+        "vmaf_harmonic_mean",
+        "vmaf_min",
+        "vmaf_max",
+        "vmaf_p5",
+        "vmaf_p10",
+        "vmaf_p25",
+        "vmaf_p75",
+        "vmaf_p90",
+        "vmaf_p95",
         "parameters",
     )
     df = pd.DataFrame(columns=columns)
@@ -271,7 +280,7 @@ def run_experiment_single_file(
                 actual_bitrate,
                 psnr,
                 ssim,
-                vmaf,
+                vmaf_dict,
             ) = run_single_experiment(
                 ref_filename,
                 ref_resolution,
@@ -303,7 +312,7 @@ def run_experiment_single_file(
                 actual_bitrate,
                 psnr,
                 ssim,
-                vmaf,
+                *vmaf_dict.values(),
                 parameters_csv_str,
             )
     return df
@@ -492,7 +501,7 @@ def run_single_experiment(
     # get quality scores
     psnr = utils.get_psnr(decs_filename, ref_filename, None, debug)
     ssim = utils.get_ssim(decs_filename, ref_filename, None, debug)
-    vmaf = utils.get_vmaf(decs_filename, ref_filename, None, debug)
+    vmaf_dict = utils.get_vmaf(decs_filename, ref_filename, None, debug)
 
     # get actual bitrate
     actual_bitrate = utils.get_bitrate(enc_filename)
@@ -503,7 +512,7 @@ def run_single_experiment(
         os.remove(decs_filename)
     if cleanup > 1:
         os.remove(enc_filename)
-    return encoder_duration, actual_bitrate, psnr, ssim, vmaf
+    return encoder_duration, actual_bitrate, psnr, ssim, vmaf_dict
 
 
 def get_options(argv):

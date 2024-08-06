@@ -57,6 +57,12 @@ CODEC_INFO = {
         "extension": ".mp4",
         "parameters": {},
     },
+    "libsvtav1-raw": {
+        "codecname": "libsvtav1-raw",
+        "extension": ".ivf",
+        "binary": "SvtAv1EncApp",
+        "parameters": {},
+    },
 }
 
 # resolution set 1
@@ -392,7 +398,14 @@ def run_single_enc(
     enc_parms += ["-i", infile]
 
     enc_env = None
-    if CODEC_INFO[codec]["codecname"] == "mjpeg":
+    if CODEC_INFO[codec]["codecname"] == "libsvtav1-raw":
+        binary = CODEC_INFO[codec]["binary"]
+        quality = parameter
+        cmd = f"{binary} --preset {preset} -q {quality} --keyint -1 --enable-tpl-la 1 --lp 1 -i {infile} -b {outfile}"
+        retcode, stdout, stderr, other = utils.run(cmd, env=enc_env, debug=debug)
+        assert retcode == 0, stderr
+        return other["time_diff"]
+    elif CODEC_INFO[codec]["codecname"] == "mjpeg":
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         # TODO(chema): use bitrate as quality value (2-31)
         quality = parameter

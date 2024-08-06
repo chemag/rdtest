@@ -371,7 +371,7 @@ def run_experiment_single_file(
 
 
 def run_single_enc(
-    in_filename,
+    infile,
     outfile,
     codec,
     resolution,
@@ -382,14 +382,14 @@ def run_single_enc(
     debug,
 ):
     if debug > 0:
-        print("# [%s] encoding file: %s -> %s" % (codec, in_filename, outfile))
+        print("# [%s] encoding file: %s -> %s" % (codec, infile, outfile))
 
     # get encoding settings
     enc_tool = "ffmpeg"
     enc_parms = [
         "-y",
     ]
-    enc_parms += ["-i", in_filename]
+    enc_parms += ["-i", infile]
 
     enc_env = None
     if CODEC_INFO[codec]["codecname"] == "mjpeg":

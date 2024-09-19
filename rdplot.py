@@ -19,13 +19,13 @@ RESOLUTIONS = [
 ]
 
 PLOT_NAMES = {
-    "vmaf": "VMAF Score",
-    "psnr": "PSNR Score",
-    "ssim": "SSIM Score",
+    "vmaf_mean": "VMAF Score",
+    "psnr_y_mean": "PSNR Score",
+    "ssim_y_mean": "SSIM Score",
     "overshoot": "Bitrate Overshoot (Percentage)",
-    "bitrate": "Bitrate",
+    "quality": "Bitrate",
     "actual_bitrate": "Actual Bitrate",
-    "duration": "Encoder Duration (sec)",
+    "encoder_duration": "Encoder Duration (sec)",
 }
 
 COLORS = {
@@ -124,7 +124,11 @@ def get_resolution(row):
 
 
 def get_overshoot(row):
-    return (100.0 * (row["actual_bitrate"] - row["bitrate"])) / row["bitrate"]
+    # bitrate column is quality columns. Of course this only makes sense if it actually is bitrate
+    # but we calculate it just the same. The magnitude for bitrate is in kbps
+    return (100.0 * (row["actual_bitrate"] - row["quality"] * 1000)) / (
+        row["quality"] * 1000
+    )
 
 
 def plot_max_min(df, ycol, ax):
@@ -160,12 +164,12 @@ def process_input(options):
     df = pd.DataFrame([], dtype=None)
     # read CSV input
     for infile in options.infiles:
-        data = np.genfromtxt(
-            infile, delimiter=",", dtype=None, names=True, encoding=None
-        )
-        # create pandas dataframe
-        df_tmp = pd.DataFrame(data, dtype=None)
-        df = df.append(df_tmp)
+        df_ = pd.read_csv(infile)
+        df_["in_filename"] = infile
+        if df is None:
+            df = df_
+        else:
+            df = pd.concat([df, df_])
 
     # add resolution and overshoot fields
     df["resolution"] = df.apply(lambda row: get_resolution(row), axis=1)
@@ -181,7 +185,7 @@ def process_input(options):
         plot_resolution_vmaf(options, df)
     elif options.plot_type == "vmaf-bitrate":
         plot_traditional(
-            "vmaf",
+            "vmaf_mean",
             "actual_bitrate",
             options,
             df,
@@ -191,7 +195,7 @@ def process_input(options):
     elif options.plot_type == "bitrate-vmaf":
         plot_traditional(
             "actual_bitrate",
-            "vmaf",
+            "vmaf_mean",
             options,
             df,
             options.simple,
@@ -200,7 +204,7 @@ def process_input(options):
     elif options.plot_type == "bitrate-psnr":
         plot_traditional(
             "actual_bitrate",
-            "psnr",
+            "psnr_y_mean",
             options,
             df,
             options.simple,
@@ -209,7 +213,7 @@ def process_input(options):
     elif options.plot_type == "bitrate-ssim":
         plot_traditional(
             "actual_bitrate",
-            "ssim",
+            "ssim_y_mean",
             options,
             df,
             options.simple,
@@ -226,7 +230,7 @@ def process_input(options):
         )
     elif options.plot_type == "bitrate-actual_bitrate":
         plot_traditional(
-            "bitrate",
+            "quality",
             "actual_bitrate",
             options,
             df,
@@ -236,7 +240,7 @@ def process_input(options):
     elif options.plot_type == "bitrate-duration":
         plot_traditional(
             "actual_bitrate",
-            "duration",
+            "encoder_duration",
             options,
             df,
             options.simple,
@@ -245,17 +249,17 @@ def process_input(options):
     elif options.plot_type == "all":
         # plot_resolution_vmaf(options, df)
         plot_traditional(
-            "vmaf",
+            "vmaf_mean",
             "actual_bitrate",
             options,
             df,
             options.simple,
             legend_loc="upper left",
         )
-        plot_traditional("actual_bitrate", "vmaf", options, df, options.simple)
-        plot_traditional("actual_bitrate", "psnr", options, df, options.simple)
-        plot_traditional("actual_bitrate", "ssim", options, df, options.simple)
-        plot_traditional("bitrate", "overshoot", options, df, options.simple)
+        plot_traditional("actual_bitrate", "vmaf_mean", options, df, options.simple)
+        plot_traditional("actual_bitrate", "psnr_y_mean", options, df, options.simple)
+        plot_traditional("actual_bitrate", "ssim_y_mean", options, df, options.simple)
+        plot_traditional("quality", "overshoot", options, df, options.simple)
 
 
 def plot_resolution_vmaf(options, df):
@@ -264,13 +268,13 @@ def plot_resolution_vmaf(options, df):
 
     xcol = "resolution"
     for ycol in PLOT_NAMES:
-        if ycol == "bitrate":
+        if ycol == "quality":
             continue
         plot_name = PLOT_NAMES[ycol]
         kwargs = {
             "x": xcol,
             "y": ycol,
-            "col": "bitrate",
+            "col": "quality",
             "hue": "codec",
             "ci": "sd",
             "capsize": 0.2,

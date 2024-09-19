@@ -294,6 +294,16 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
     # important: vmaf must be called with videos in the right order
     # <distorted_video> <reference_video>
     # https://jina-liu.medium.com/a-practical-guide-for-vmaf-481b4d420d9c
+
+    # Allow for an environment variable pointing out the VMAF model
+    if os.environ.get("VMAF_MODEL_PATH", None):
+        print("Environment VMAF_PATH override model")
+        VMAF_MODEL = os.environ.get("VMAF_MODEL_PATH")
+    if not os.path.isfile(VMAF_MODEL):
+           print(
+            f"\n***\nwarn: cannot find VMAF model {VMAF_MODEL}. Using default model\n***"
+        )
+
     ffmpeg_params = [
         "-i",
         distorted_filename,

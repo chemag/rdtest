@@ -32,11 +32,16 @@ Notes:
 * "-d" forces debug mode (useful to test the script).
 * the test requires a VMAF distribution, either a separate one (slower), or an ffmpeg binary that supports VMAF (faster).
 
+The script will make assumption about where your VMAF installation models are located. If this is not correct you can use an environment variable instead:
+VMAF_MODE_PATH
+
+e.g. "export VMAF_MODEL_PATH=/usr/local/Cellar/libvmaf/3.0.0/share/libvmaf/model/vmaf_v0.6.1neg.json"
+
 
 Once you are happy with the results, run the full experiment.
 
 ```
-$ ./rdtest.py input.mp4 --tmp-dir /tmp/rdtest_py_tmp -ddd /tmp/results.txt
+$ ./rdtest.py --tmp-dir /tmp/rdtest_py_tmp -ddd -o /tmp/results.csv input.mp4 
 ```
 
 The results are dumped to a text file, which contains a CSV collection of encoding parameters and video quality results (PSNR, SSIM, and VMAF).

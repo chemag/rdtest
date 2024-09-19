@@ -364,6 +364,7 @@ def run_experiment_single_file(
                 height,
                 ref_framerate,
                 rcmode,
+                # Quality is also bitrate...
                 quality,
                 preset,
                 encoder_duration,

@@ -87,6 +87,11 @@ DEFAULT_RESOLUTIONS = [
     # '160x90',
 ]
 
+# use None for input resolution
+DEFAULT_RESOLUTIONS = [
+    None,
+]
+
 # Notes:
 # * 720p is not a realistic encoding resolution in mobile due to
 # performance issues
@@ -329,6 +334,8 @@ def run_experiment_single_file(
     for codec, resolution, rcmode, preset in itertools.product(
         codecs, resolutions, rcmodes, presets
     ):
+        if resolution is None:
+            resolution = in_resolution
         parameters_csv_str = ""
         for k, v in CODEC_INFO[codec]["parameters"].items():
             parameters_csv_str += "%s=%s;" % (k, str(v))
@@ -750,9 +757,13 @@ def get_options(argv):
         "qualities",
         "presets",
     ):
-        for sep in (",", " "):
-            if len(vars(options)[field]) == 1 and sep in vars(options)[field][0]:
-                vars(options)[field] = vars(options)[field][0].split(sep)
+        if len(vars(options)[field]) == 1:
+            for sep in (",", " "):
+                parameter = vars(options)[field][0]
+                if parameter is None:
+                    continue
+                elif sep in parameter:
+                    vars(options)[field] = parameter.split(sep)
     # check valid values in options.codecs
     if not all(c in CODEC_INFO.keys() for c in options.codecs):
         print(
@@ -764,7 +775,7 @@ def get_options(argv):
         )
         sys.exit(-1)
     # check valid values in options.resolutions
-    if not all("x" in r for r in options.resolutions):
+    if not all((r is None or "x" in r) for r in options.resolutions):
         print(
             "# error: invalid resolution(s): %r"
             % ([r for r in options.resolutions if "x" not in r])

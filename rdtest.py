@@ -16,13 +16,53 @@ import utils
 
 
 CODEC_INFO = {
-    "mjpeg": {"codecname": "mjpeg", "extension": ".mp4", "parameters": {}},
-    "x264": {"codecname": "libx264", "extension": ".mp4", "parameters": {}},
-    "openh264": {"codecname": "libopenh264", "extension": ".mp4", "parameters": {}},
+    "mjpeg": {
+        "codecname": "mjpeg",
+        "extension": ".mp4",
+        "parameters": {},
+    },
+    "x264": {
+        "codecname": "libx264",
+        "extension": ".mp4",
+        "parameters": {},
+        "preset-name": "preset",
+        "presets": (
+            "ultrafast",
+            "superfast",
+            "veryfast",
+            "faster",
+            "fast",
+            "medium",
+            "slow",
+            "slower",
+            "veryslow",
+            "placebo",
+        ),
+    },
+    "openh264": {
+        "codecname": "libopenh264",
+        "extension": ".mp4",
+        "parameters": {},
+        "preset-name": "complexity",
+        "presets": ("0", "1", "2"),
+    },
     "x265": {
         "codecname": "libx265",
         "extension": ".mp4",
         "parameters": {},
+        "preset-name": "preset",
+        "presets": (
+            "ultrafast",
+            "superfast",
+            "veryfast",
+            "faster",
+            "fast",
+            "medium",
+            "slow",
+            "slower",
+            "veryslow",
+            "placebo",
+        ),
     },
     "vp8": {
         "codecname": "vp8",
@@ -31,6 +71,26 @@ CODEC_INFO = {
             # quality parameters
             "quality": "realtime",
         },
+        "preset-name": "cpu-used",
+        "presets": (
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+        ),
     },
     "vp9": {
         "codecname": "libvpx-vp9",
@@ -41,6 +101,8 @@ CODEC_INFO = {
             "qmin": 2,
             "qmax": 56,
         },
+        "preset-name": "cpu-used",
+        "presets": ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"),
     },
     "libaom-av1": {
         "codecname": "libaom-av1",
@@ -51,17 +113,54 @@ CODEC_INFO = {
             # "cpu-used": 5,
         },
         "preset-name": "cpu-used",
+        "presets": ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"),
     },
     "libsvtav1": {
         "codecname": "libsvtav1",
         "extension": ".mp4",
         "parameters": {},
+        "preset-name": "preset",
+        "presets": (
+            "-1",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+        ),
     },
     "libsvtav1-raw": {
         "codecname": "libsvtav1-raw",
         "extension": ".ivf",
         "binary": "SvtAv1EncApp",
         "parameters": {},
+        "preset-name": "preset",
+        "presets": (
+            "-1",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+        ),
     },
 }
 
@@ -460,8 +559,10 @@ def run_single_enc(
         if CODEC_INFO[codec]["codecname"] in ("libx264", "libx265"):
             # no b-frames
             enc_parms += ["-bf", "0"]
-        preset_name = CODEC_INFO[codec].get("preset-name", "preset")
-        enc_parms += [f"-{preset_name}", preset]
+        # add preset (if available)
+        if CODEC_INFO[codec].get("preset-name", None) is not None:
+            preset_name = CODEC_INFO[codec].get("preset-name")
+            enc_parms += [f"-{preset_name}", preset]
         enc_parms += ["-s", resolution]
         if gop_length_frames is not None:
             enc_parms += ["-g", str(gop_length_frames)]

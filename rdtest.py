@@ -92,9 +92,8 @@ DEFAULT_RESOLUTIONS = [
     None,
 ]
 
-# Notes:
-# * 720p is not a realistic encoding resolution in mobile due to
-# performance issues
+# bitrates are defined in Kbps
+# TODO(chema): add a better mechanism to define bitrates
 DEFAULT_BITRATES = [
     2500,
     1000,
@@ -263,6 +262,7 @@ def run_experiment_single_file(
         "framerate",
         "rcmode",
         "quality",
+        "bitrate",
         "preset",
         "encoder_duration",
         "actual_bitrate",
@@ -344,12 +344,14 @@ def run_experiment_single_file(
         parameters_csv_str = ""
         for k, v in CODEC_INFO[codec]["parameters"].items():
             parameters_csv_str += "%s=%s;" % (k, str(v))
-        # get quality list
+        # get bitrate/quality list
         if rcmode == "cbr":
-            qualities = bitrates
+            quality_bitrate_option = "bitrate"
+            qualities_bitrates = bitrates
         elif rcmode == "crf":
-            qualities = qualities
-        for quality in qualities:
+            quality_bitrate_option = "quality"
+            qualities_bitrates = qualities
+        for quality_bitrate in qualities_bitrates:
             (
                 encoder_duration,
                 actual_bitrate,
@@ -363,7 +365,8 @@ def run_experiment_single_file(
                 ref_framerate,
                 codec,
                 resolution,
-                quality,
+                quality_bitrate_option,
+                quality_bitrate,
                 preset,
                 rcmode,
                 gop_length_frames,
@@ -373,6 +376,12 @@ def run_experiment_single_file(
             )
             width, height = resolution.split("x")
             ref_framerate = utils.get_framerate(ref_filename)
+            if quality_bitrate_option == "bitrate":
+                quality = ""
+                bitrate = quality_bitrate
+            elif quality_bitrate_option == "quality":
+                bitrate = ""
+                quality = quality_bitrate
             df.loc[len(df.index)] = (
                 in_basename,
                 label,
@@ -382,8 +391,8 @@ def run_experiment_single_file(
                 height,
                 ref_framerate,
                 rcmode,
-                # Quality is also bitrate...
                 quality,
+                bitrate,
                 preset,
                 encoder_duration,
                 actual_bitrate,
@@ -400,7 +409,8 @@ def run_single_enc(
     outfile,
     codec,
     resolution,
-    parameter,
+    quality_bitrate_option,
+    quality_bitrate,
     preset,
     rcmode,
     gop_length_frames,
@@ -419,7 +429,8 @@ def run_single_enc(
     enc_env = None
     if CODEC_INFO[codec]["codecname"] == "libsvtav1-raw":
         binary = CODEC_INFO[codec]["binary"]
-        quality = parameter
+        assert rcmode == "crf", f"error: libsvtav1-raw only defined for {rcmode}"
+        quality = quality_bitrate
         cmd = f"{binary} --preset {preset} -q {quality} --keyint -1 --enable-tpl-la 1 --lp 1 -i {infile} -b {outfile}"
         retcode, stdout, stderr, other = utils.run(cmd, env=enc_env, debug=debug)
         assert retcode == 0, stderr
@@ -427,13 +438,14 @@ def run_single_enc(
     elif CODEC_INFO[codec]["codecname"] == "mjpeg":
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         # TODO(chema): use bitrate as quality value (2-31)
-        quality = parameter
+        assert rcmode == "crf", f"error: mjpeg only defined for {rcmode}"
+        quality = quality_bitrate
         enc_parms += ["-q:v", "%s" % quality]
         enc_parms += ["-s", resolution]
     else:
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         if rcmode == "cbr":
-            bitrate = parameter
+            bitrate = quality_bitrate
             # enc_parms += ["-maxrate", "%sk" % bitrate]
             # enc_parms += ["-minrate", "%sk" % bitrate]
             enc_parms += ["-b:v", "%sk" % bitrate]
@@ -442,7 +454,7 @@ def run_single_enc(
             #    bufsize = str(int(bitrate) * 2)
             #    enc_parms += ["-bufsize", bufsize]
         elif rcmode == "crf":
-            quality = parameter
+            quality = quality_bitrate
             enc_parms += ["-crf", "%s" % quality]
 
         if CODEC_INFO[codec]["codecname"] in ("libx264", "libx265"):
@@ -498,7 +510,8 @@ def run_single_experiment(
     ref_framerate,
     codec,
     resolution,
-    quality,
+    quality_bitrate_option,
+    quality_bitrate,
     preset,
     rcmode,
     gop_length_frames,
@@ -508,19 +521,18 @@ def run_single_experiment(
 ):
     if debug > 0:
         print(
-            "# [run] run_single_experiment codec: %s resolution: %s "
-            "quality: %s rcmode: %s preset: %s"
-            % (codec, resolution, quality, rcmode, preset)
+            f"# [run] run_single_experiment codec: {codec} resolution: {resolution} "
+            f"{quality_bitrate_option}: {quality_bitrate} rcmode: {rcmode} preset: {preset}"
         )
     ref_basename = os.path.basename(ref_filename)
 
     # common info for enc, dec, and decs
-    gen_basename = ref_basename + ".ref_%s" % ref_resolution
-    gen_basename += ".codec_%s" % codec
-    gen_basename += ".resolution_%s" % resolution
-    gen_basename += ".quality_%s" % quality
-    gen_basename += ".preset_%s" % preset
-    gen_basename += ".rcmode_%s" % rcmode
+    gen_basename = ref_basename + f".ref_{ref_resolution}"
+    gen_basename += f".codec_{codec}"
+    gen_basename += f".resolution_{resolution}"
+    gen_basename += f".{quality_bitrate_option}_{quality_bitrate}"
+    gen_basename += f".preset_{preset}"
+    gen_basename += f".rcmode_{rcmode}"
 
     # 3. enc: encode copy with encoder
     enc_basename = gen_basename + CODEC_INFO[codec]["extension"]
@@ -530,7 +542,8 @@ def run_single_experiment(
         enc_filename,
         codec,
         resolution,
-        quality,
+        quality_bitrate_option,
+        quality_bitrate,
         preset,
         rcmode,
         gop_length_frames,

@@ -302,7 +302,7 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
         print("Environment VMAF_PATH override model")
         VMAF_MODEL = os.environ.get("VMAF_MODEL_PATH")
     if not os.path.isfile(VMAF_MODEL):
-           print(
+        print(
             f"\n***\nwarn: cannot find VMAF model {VMAF_MODEL}. Using default model\n***"
         )
 
@@ -319,14 +319,15 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
     ]
     retcode, _, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
     assert retcode == 0, stderr
-    return parse_vmaf_output(vmaf_json)
+    return parse_vmaf_output(vmaf_json, VMAF_MODEL)
 
 
-def parse_vmaf_output(vmaf_json):
+def parse_vmaf_output(vmaf_json, vmaf_model):
     """Parse log/output files and return quality score"""
     with open(vmaf_json) as fd:
         data = json.load(fd)
     vmaf_dict = {
+        "model": os.path.basename(vmaf_model),
         "mean": data["pooled_metrics"]["vmaf"]["mean"],
         "harmonic_mean": data["pooled_metrics"]["vmaf"]["harmonic_mean"],
     }

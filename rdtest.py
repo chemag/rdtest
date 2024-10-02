@@ -316,6 +316,7 @@ def run_experiment_single_file(
         "ssim_v_p90",
         "ssim_v_p95",
         "ssim_v_p100",
+        "vmaf_model",
         "vmaf_mean",
         "vmaf_harmonic_mean",
         "vmaf_p0",

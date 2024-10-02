@@ -146,6 +146,7 @@ DEFAULT_RCMODES = [
 default_values = {
     "debug": 0,
     "cleanup": 0,
+    "label": "",
     "ref_res": None,
     "ref_pix_fmt": "yuv420p",
     "vmaf_dir": "/tmp/",
@@ -173,6 +174,7 @@ def run_experiment(options):
     for infile in options.infile_list:
         df_tmp = run_experiment_single_file(
             infile,
+            options.label,
             options.codecs,
             options.resolutions,
             options.rcmodes,
@@ -193,6 +195,7 @@ def run_experiment(options):
 
 def run_experiment_single_file(
     infile,
+    label,
     codecs,
     resolutions,
     rcmodes,
@@ -252,6 +255,7 @@ def run_experiment_single_file(
 
     columns = (
         "infile",
+        "label",
         "codec",
         "resolution",
         "width",
@@ -371,6 +375,7 @@ def run_experiment_single_file(
             ref_framerate = utils.get_framerate(ref_filename)
             df.loc[len(df.index)] = (
                 in_basename,
+                label,
                 codec,
                 resolution,
                 width,
@@ -649,6 +654,13 @@ def get_options(argv):
         const=0,
         help="Do Not Cleanup Files%s"
         % (" [default]" if not default_values["cleanup"] == 0 else ""),
+    )
+    parser.add_argument(
+        "--label",
+        action="store",
+        dest="label",
+        default=default_values["label"],
+        help="use LABEL to label the experiment",
     )
     parser.add_argument(
         "-s",

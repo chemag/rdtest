@@ -285,6 +285,8 @@ def check_software(debug):
 
 
 def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
+    global VMAF_MODEL
+
     vmaf_json = (
         vmaf_json
         if vmaf_json is not None

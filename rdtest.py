@@ -65,15 +65,20 @@ CODEC_INFO = {
     },
 }
 
+
+# codecs
+DEFAULT_CODECS = CODEC_INFO.keys()
+
+
 # resolution set 1
-RESOLUTIONS = [
+DEFAULT_RESOLUTIONS = [
     "640x360",  # 200-437kbps
     "480x272",  # actually 480x270 100-200kbps
     "320x160",  # < 100kbps
 ]
 
 # resolution set 2
-RESOLUTIONS = [
+DEFAULT_RESOLUTIONS = [
     "1280x720",
     "864x480",
     "640x360",
@@ -85,7 +90,7 @@ RESOLUTIONS = [
 # Notes:
 # * 720p is not a realistic encoding resolution in mobile due to
 # performance issues
-BITRATES = [
+DEFAULT_BITRATES = [
     2500,
     1000,
     560,
@@ -94,10 +99,10 @@ BITRATES = [
     70,
     35,
 ]
-QUALITIES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+DEFAULT_QUALITIES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 # https://trac.ffmpeg.org/wiki/Encode/H.264
 # https://trac.ffmpeg.org/wiki/Encode/H.265
-PRESETS = [
+DEFAULT_PRESETS = [
     "ultrafast",
     "superfast",
     "veryfast",
@@ -127,7 +132,7 @@ PRESETS_AV1 = [
     13,
 ]
 
-RCMODES = [
+DEFAULT_RCMODES = [
     "cbr",
     "crf",
 ]
@@ -141,12 +146,12 @@ default_values = {
     "vmaf_dir": "/tmp/",
     "tmp_dir": "/tmp/",
     "gop_length_frames": 600,
-    "codecs": CODEC_INFO.keys(),
-    "resolutions": RESOLUTIONS,
-    "bitrates": BITRATES,
-    "qualities": QUALITIES,
-    "presets": PRESETS,
-    "rcmodes": RCMODES,
+    "codecs": DEFAULT_CODECS,
+    "resolutions": DEFAULT_RESOLUTIONS,
+    "bitrates": DEFAULT_BITRATES,
+    "qualities": DEFAULT_QUALITIES,
+    "presets": DEFAULT_PRESETS,
+    "rcmodes": DEFAULT_RCMODES,
     "infile_list": [],
     "outfile": None,
 }
@@ -779,10 +784,13 @@ def get_options(argv):
         )
         sys.exit(-1)
     # check valid values in options.rcmodes
-    if not all(r in RCMODES for r in options.rcmodes):
+    if not all(r in DEFAULT_RCMODES for r in options.rcmodes):
         print(
             "# error: invalid rcmode(s): %r supported_rcmodes: %r"
-            % ([r for r in options.rcmodes if r not in RCMODES], RCMODES)
+            % (
+                [r for r in options.rcmodes if r not in DEFAULT_RCMODES],
+                DEFAULT_RCMODES,
+            )
         )
         sys.exit(-1)
     return options

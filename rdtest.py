@@ -527,13 +527,25 @@ def run_single_enc(
 
     enc_env = None
     if CODEC_INFO[codec]["codecname"] == "libsvtav1-raw":
-        binary = CODEC_INFO[codec]["binary"]
-        assert rcmode == "crf", f"error: libsvtav1-raw only defined for {rcmode}"
-        quality = quality_bitrate
-        cmd = f"{binary} --preset {preset} -q {quality} --keyint -1 --enable-tpl-la 1 --lp 1 -i {infile} -b {outfile}"
-        retcode, stdout, stderr, other = utils.run(cmd, env=enc_env, debug=debug)
-        assert retcode == 0, stderr
-        return other["time_diff"]
+        enc_tool = CODEC_INFO[codec]["binary"]
+        enc_parms = ["-i", infile]
+        # ~/work/video/av1/svt-av1/Bin/Release/SvtAv1EncApp --rc 1 --lp 1 --tbr 14000 --preset 10 --keyint 600 -i /tmp/rdtest_py_tmp/easy.mp4.ref_1728x2304.y4m --output /tmp/rdtest_py_tmp/foo.mp4.ivf
+        if rcmode == "cbr":
+            # TODO(chema): use VBR (1) instead of CBR (2) as SvtAv1EncApp is complaining
+            # Svt[error]: CBR Rate control is currently not supported for SVT_AV1_PRED_RANDOM_ACCESS, use VBR mode
+            # enc_parms += ["--rc", "2"]
+            enc_parms += ["--rc", "1"]
+            bitrate = quality_bitrate
+            enc_parms += ["--tbr", "%s" % bitrate]
+        elif rcmode == "crf":
+            enc_parms += ["--rc", "0"]
+            quality = quality_bitrate
+            enc_parms += ["--crf", "%s" % quality]
+        enc_parms += ["--preset", "%s" % preset]
+        if gop_length_frames is not None:
+            enc_parms += ["--keyint", str(gop_length_frames)]
+        enc_parms += ["--output", outfile]
+
     elif CODEC_INFO[codec]["codecname"] == "mjpeg":
         enc_parms += ["-c:v", CODEC_INFO[codec]["codecname"]]
         # TODO(chema): use bitrate as quality value (2-31)
@@ -572,9 +584,10 @@ def run_single_enc(
             # ABR at https://trac.ffmpeg.org/wiki/Encode/AV1
             enc_parms += ["-strict", "experimental"]
 
-    # pass audio through
-    enc_parms += ["-c:a", "copy"]
-    enc_parms += [outfile]
+    if enc_tool == "ffmpeg":
+        # pass audio through
+        enc_parms += ["-c:a", "copy"]
+        enc_parms += [outfile]
 
     # run encoder
     cmd = [

@@ -542,6 +542,8 @@ def run_single_enc(
             quality = quality_bitrate
             enc_parms += ["--crf", "%s" % quality]
         enc_parms += ["--preset", "%s" % preset]
+        # maximize CPU usage
+        enc_parms += ["--lp", "0"]
         if gop_length_frames is not None:
             enc_parms += ["--keyint", str(gop_length_frames)]
         enc_parms += ["--output", outfile]

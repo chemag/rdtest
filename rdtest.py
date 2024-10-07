@@ -488,6 +488,8 @@ def run_single_enc(
         enc_parms += ["--preset", "%s" % preset]
         # maximize CPU usage
         enc_parms += ["--lp", "0"]
+        # set random access prediction structure
+        enc_parms += ["--pred-struct", "2"]
         if gop_length_frames is not None:
             enc_parms += ["--keyint", str(gop_length_frames)]
         enc_parms += ["--output", outfile]

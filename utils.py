@@ -198,7 +198,7 @@ def parse_psnr_log(psnr_log):
             for percentile in PERCENTILE_LIST
         }
     )
-    return psnr_dict
+    return {f"psnr_{k}": v for k, v in psnr_dict.items()}
 
 
 def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
@@ -262,7 +262,7 @@ def parse_ssim_log(ssim_log):
             for percentile in PERCENTILE_LIST
         }
     )
-    return ssim_dict
+    return {f"ssim_{k}": v for k, v in ssim_dict.items()}
 
 
 def ffmpeg_supports_libvmaf(debug):
@@ -342,4 +342,4 @@ def parse_vmaf_output(vmaf_json, vmaf_model):
             for percentile in PERCENTILE_LIST
         }
     )
-    return vmaf_dict
+    return {f"vmaf_{k}": v for k, v in vmaf_dict.items()}

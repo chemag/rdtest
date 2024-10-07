@@ -351,7 +351,7 @@ def run_experiment_single_file(
         utils.get_pix_fmt(ref_filename),
     )
 
-    columns = (
+    columns_init = (
         "infile",
         "label",
         "codec",
@@ -365,74 +365,9 @@ def run_experiment_single_file(
         "preset",
         "encoder_duration",
         "actual_bitrate",
-        "psnr_y_mean",
-        "psnr_u_mean",
-        "psnr_v_mean",
-        "psnr_y_p0",
-        "psnr_y_p5",
-        "psnr_y_p10",
-        "psnr_y_p25",
-        "psnr_y_p75",
-        "psnr_y_p90",
-        "psnr_y_p95",
-        "psnr_y_p100",
-        "psnr_u_p0",
-        "psnr_u_p5",
-        "psnr_u_p10",
-        "psnr_u_p25",
-        "psnr_u_p75",
-        "psnr_u_p90",
-        "psnr_u_p95",
-        "psnr_u_p100",
-        "psnr_v_p0",
-        "psnr_v_p5",
-        "psnr_v_p10",
-        "psnr_v_p25",
-        "psnr_v_p75",
-        "psnr_v_p90",
-        "psnr_v_p95",
-        "psnr_v_p100",
-        "ssim_y_mean",
-        "ssim_u_mean",
-        "ssim_v_mean",
-        "ssim_y_p0",
-        "ssim_y_p5",
-        "ssim_y_p10",
-        "ssim_y_p25",
-        "ssim_y_p75",
-        "ssim_y_p90",
-        "ssim_y_p95",
-        "ssim_y_p100",
-        "ssim_u_p0",
-        "ssim_u_p5",
-        "ssim_u_p10",
-        "ssim_u_p25",
-        "ssim_u_p75",
-        "ssim_u_p90",
-        "ssim_u_p95",
-        "ssim_u_p100",
-        "ssim_v_p0",
-        "ssim_v_p5",
-        "ssim_v_p10",
-        "ssim_v_p25",
-        "ssim_v_p75",
-        "ssim_v_p90",
-        "ssim_v_p95",
-        "ssim_v_p100",
-        "vmaf_model",
-        "vmaf_mean",
-        "vmaf_harmonic_mean",
-        "vmaf_p0",
-        "vmaf_p5",
-        "vmaf_p10",
-        "vmaf_p25",
-        "vmaf_p75",
-        "vmaf_p90",
-        "vmaf_p95",
-        "vmaf_p100",
-        "parameters",
     )
-    df = pd.DataFrame(columns=columns)
+    columns_fini = ("parameters",)
+    df = None
 
     # run the list of encodings
     for codec, resolution, rcmode, preset in itertools.product(
@@ -481,6 +416,15 @@ def run_experiment_single_file(
             elif quality_bitrate_option == "quality":
                 bitrate = ""
                 quality = quality_bitrate
+            if df is None:
+                columns = (
+                    columns_init
+                    + tuple(psnr_dict.keys())
+                    + tuple(ssim_dict.keys())
+                    + tuple(vmaf_dict.keys())
+                    + columns_fini
+                )
+                df = pd.DataFrame(columns=columns)
             df.loc[len(df.index)] = (
                 in_basename,
                 label,

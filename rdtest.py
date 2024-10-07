@@ -363,7 +363,6 @@ def run_experiment_single_file(
         "quality",
         "bitrate",
         "preset",
-        "encoder_duration",
         "actual_bitrate",
     )
     columns_fini = ("parameters",)
@@ -387,7 +386,7 @@ def run_experiment_single_file(
             qualities_bitrates = qualities
         for quality_bitrate in qualities_bitrates:
             (
-                encoder_duration,
+                encoder_stats,
                 actual_bitrate,
                 psnr_dict,
                 ssim_dict,
@@ -419,6 +418,7 @@ def run_experiment_single_file(
             if df is None:
                 columns = (
                     columns_init
+                    + tuple(encoder_stats.keys())
                     + tuple(psnr_dict.keys())
                     + tuple(ssim_dict.keys())
                     + tuple(vmaf_dict.keys())
@@ -437,8 +437,8 @@ def run_experiment_single_file(
                 quality,
                 bitrate,
                 preset,
-                encoder_duration,
                 actual_bitrate,
+                *encoder_stats.values(),
                 *psnr_dict.values(),
                 *ssim_dict.values(),
                 *vmaf_dict.values(),
@@ -539,9 +539,11 @@ def run_single_enc(
     cmd = [
         enc_tool,
     ] + enc_parms
-    retcode, stdout, stderr, other = utils.run(cmd, env=enc_env, debug=debug)
+    retcode, stdout, stderr, stats = utils.run(
+        cmd, env=enc_env, debug=debug, gnu_time=True
+    )
     assert retcode == 0, stderr
-    return other["time_diff"]
+    return stats
 
 
 def run_single_dec(infile, outfile, codec, debug):
@@ -597,7 +599,7 @@ def run_single_experiment(
     # 3. enc: encode copy with encoder
     enc_basename = gen_basename + CODEC_INFO[codec]["extension"]
     enc_filename = os.path.join(tmp_dir, enc_basename)
-    encoder_duration = run_single_enc(
+    encoder_stats = run_single_enc(
         ref_filename,
         enc_filename,
         codec,
@@ -669,7 +671,7 @@ def run_single_experiment(
         os.remove(decs_filename)
     if cleanup > 1:
         os.remove(enc_filename)
-    return encoder_duration, actual_bitrate, psnr_dict, ssim_dict, vmaf_dict
+    return encoder_stats, actual_bitrate, psnr_dict, ssim_dict, vmaf_dict
 
 
 def get_options(argv):

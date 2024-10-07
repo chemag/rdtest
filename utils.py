@@ -53,6 +53,7 @@ def run(command, **kwargs):
     close_fds = kwargs.get("close_fds", default_close_fds)
     shell = kwargs.get("shell", True)
     get_perf_stats = kwargs.get("get_perf_stats", False)
+    gnu_time = kwargs.get("gnu_time", False)
     if type(command) is list:
         command = subprocess.list2cmdline(command)
     if debug > 0:
@@ -62,6 +63,9 @@ def run(command, **kwargs):
     if get_perf_stats:
         _, perfstats_filename = tempfile.mkstemp(dir=tempfile.gettempdir())
         command = f"3>{perfstats_filename} perf stat --log-fd 3 {command}"
+    elif gnu_time:
+        command = f"/usr/bin/time -v {command}"
+
     ts1 = time.time()
     p = subprocess.Popen(  # noqa: E501
         command,
@@ -81,16 +85,75 @@ def run(command, **kwargs):
         out, err = p.communicate()
     returncode = p.returncode
     ts2 = time.time()
+    # get performance statistics
     other = {
-        "time_diff": ts2 - ts1,
+        "timediff": ts2 - ts1,
     }
     if get_perf_stats:
         perf_stats = parse_perf_stats(perfstats_filename)
         other.update(perf_stats)
+    elif gnu_time:
+        # make sure the stats are there
+        GNU_TIME_BYTES = b"\n\tUser time"
+        assert GNU_TIME_BYTES in err, "error: cannot find GNU time info in stderr"
+        gnu_time_str = err[err.index(GNU_TIME_BYTES) :].decode("ascii")
+        gnu_time_stats = gnu_time_parse(gnu_time_str)
+        other.update(gnu_time_stats)
+        err = err[0 : err.index(GNU_TIME_BYTES) :]
+    stats = {f"perf_{k}": v for k, v in other.items()}
     # clean up
     del p
     # return results
-    return returncode, out, err, other
+    return returncode, out, err, stats
+
+
+GNU_TIME_DEFAULT_KEY_DICT = {
+    "Command being timed": "command",
+    "User time (seconds)": "usertime",
+    "System time (seconds)": "systemtime",
+    "Percent of CPU this job got": "cpu",
+    "Elapsed (wall clock) time (h:mm:ss or m:ss)": "elapsed",
+    "Average shared text size (kbytes)": "avgtext",
+    "Average unshared data size (kbytes)": "avgdata",
+    "Average stack size (kbytes)": "avgstack",
+    "Average total size (kbytes)": "avgtotal",
+    "Maximum resident set size (kbytes)": "maxrss",
+    "Average resident set size (kbytes)": "avgrss",
+    "Major (requiring I/O) page faults": "major_pagefaults",
+    "Minor (reclaiming a frame) page faults": "minor_pagefaults",
+    "Voluntary context switches": "voluntaryswitches",
+    "Involuntary context switches": "involuntaryswitches",
+    "Swaps": "swaps",
+    "File system inputs": "fileinputs",
+    "File system outputs": "fileoutputs",
+    "Socket messages sent": "socketsend",
+    "Socket messages received": "socketrecv",
+    "Signals delivered": "signals",
+    "Page size (bytes)": "page_size",
+    "Exit status": "status",
+}
+
+
+def gnu_time_parse(gnu_time_str):
+    gnu_time_stats = {}
+    for line in gnu_time_str.split("\n"):
+        if not line:
+            # empty line
+            continue
+        # check if we know the line
+        line = line.strip()
+        for key, val in GNU_TIME_DEFAULT_KEY_DICT.items():
+            if line.startswith(key):
+                break
+        else:
+            # unknown key
+            print(f"warn: unknown gnutime line: {line}")
+            continue
+        gnu_time_stats[val] = line[len(key) + 1 :].strip()
+    gnu_time_stats["usersystemtime"] = str(
+        float(gnu_time_stats["usertime"]) + float(gnu_time_stats["systemtime"])
+    )
+    return gnu_time_stats
 
 
 def ffprobe_run(stream_info, infile, debug=0):

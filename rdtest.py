@@ -258,12 +258,13 @@ default_values = {
     "rcmodes": DEFAULT_RCMODES,
     "infile_list": [],
     "outfile": None,
+    "logfile": None,
 }
 
 
-def run_experiment(options):
+def run_experiment(options, logfd):
     # check all software is ok
-    utils.check_software(options.debug)
+    utils.check_software(logfd, options.debug)
 
     # prepare output directory
     pathlib.Path(options.tmp_dir).mkdir(parents=True, exist_ok=True)
@@ -284,6 +285,7 @@ def run_experiment(options):
             options.gop_length_frames,
             options.tmp_dir,
             options.cleanup,
+            logfd,
             options.debug,
         )
         df = df_tmp if df is None else pd.concat([df, df_tmp])
@@ -305,20 +307,21 @@ def run_experiment_single_file(
     gop_length_frames,
     tmp_dir,
     cleanup,
+    logfd,
     debug,
 ):
     # 1. in: get infile information
     if debug > 0:
-        print("# [run] parsing file: %s" % (infile))
+        print("# [run] parsing file: %s" % (infile), file=logfd)
     assert os.access(infile, os.R_OK), "file %s is not readable" % infile
     in_basename = os.path.basename(infile)
-    in_resolution = utils.get_resolution(infile)
-    in_framerate = utils.get_framerate(infile)
+    in_resolution = utils.get_resolution(infile, logfd, debug)
+    in_framerate = utils.get_framerate(infile, logfd, debug)
 
     # 2. ref: decode the original file into a raw file
     ref_basename = f"{in_basename}.ref_{in_resolution}.y4m"
     if debug > 0:
-        print(f"# [run] normalize file: {infile} -> {ref_basename}")
+        print(f"# [run] normalize file: {infile} -> {ref_basename}", file=logfd)
     ref_filename = os.path.join(tmp_dir, ref_basename)
     ref_resolution = in_resolution if ref_res is None else ref_res
     ref_framerate = in_framerate
@@ -333,22 +336,22 @@ def run_experiment_single_file(
         ref_pix_fmt,
         ref_filename,
     ]
-    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, logfd, debug)
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == utils.get_resolution(
-        ref_filename
+        ref_filename, logfd, debug
     ), "Error: %s must have resolution: %s (is %s)" % (
         ref_filename,
         ref_resolution,
-        utils.get_resolution(ref_filename),
+        utils.get_resolution(ref_filename, logfd, debug),
     )
     assert ref_pix_fmt == utils.get_pix_fmt(
-        ref_filename
+        ref_filename, logfd, debug
     ), "Error: %s must have pix_fmt: %s (is %s)" % (
         ref_filename,
         ref_pix_fmt,
-        utils.get_pix_fmt(ref_filename),
+        utils.get_pix_fmt(ref_filename, logfd, debug),
     )
 
     columns_init = (
@@ -404,11 +407,12 @@ def run_experiment_single_file(
                 rcmode,
                 gop_length_frames,
                 tmp_dir,
+                logfd,
                 debug,
                 cleanup,
             )
             width, height = resolution.split("x")
-            ref_framerate = utils.get_framerate(ref_filename)
+            ref_framerate = utils.get_framerate(ref_filename, logfd, debug)
             if quality_bitrate_option == "bitrate":
                 quality = ""
                 bitrate = quality_bitrate
@@ -457,10 +461,11 @@ def run_single_enc(
     preset,
     rcmode,
     gop_length_frames,
+    logfd,
     debug,
 ):
     if debug > 0:
-        print("# [%s] encoding file: %s -> %s" % (codec, infile, outfile))
+        print("# [%s] encoding file: %s -> %s" % (codec, infile, outfile), file=logfd)
 
     # get encoding settings
     enc_tool = "ffmpeg"
@@ -542,15 +547,15 @@ def run_single_enc(
         enc_tool,
     ] + enc_parms
     retcode, stdout, stderr, stats = utils.run(
-        cmd, env=enc_env, debug=debug, gnu_time=True
+        cmd, env=enc_env, logfd=logfd, debug=debug, gnu_time=True
     )
     assert retcode == 0, stderr
     return stats
 
 
-def run_single_dec(infile, outfile, codec, debug):
+def run_single_dec(infile, outfile, codec, logfd, debug):
     if debug > 0:
-        print("# [%s] decoding file: %s -> %s" % (codec, infile, outfile))
+        print("# [%s] decoding file: %s -> %s" % (codec, infile, outfile), file=logfd)
 
     # get decoding settings
     dec_tool = "ffmpeg"
@@ -563,7 +568,7 @@ def run_single_dec(infile, outfile, codec, debug):
     cmd = [
         dec_tool,
     ] + dec_parms
-    retcode, stdout, stderr, _ = utils.run(cmd, env=dec_env, debug=debug)
+    retcode, stdout, stderr, _ = utils.run(cmd, env=dec_env, logfd=logfd, debug=debug)
     assert retcode == 0, stderr
 
 
@@ -580,13 +585,15 @@ def run_single_experiment(
     rcmode,
     gop_length_frames,
     tmp_dir,
+    logfd,
     debug,
     cleanup,
 ):
     if debug > 0:
         print(
             f"# [run] run_single_experiment codec: {codec} resolution: {resolution} "
-            f"{quality_bitrate_option}: {quality_bitrate} rcmode: {rcmode} preset: {preset}"
+            f"{quality_bitrate_option}: {quality_bitrate} rcmode: {rcmode} preset: {preset}",
+            file=logfd,
         )
     ref_basename = os.path.basename(ref_filename)
 
@@ -611,13 +618,14 @@ def run_single_experiment(
         preset,
         rcmode,
         gop_length_frames,
+        logfd,
         debug,
     )
 
     # 4. dec: decode copy in order to get statistics
     dec_basename = enc_basename + ".y4m"
     dec_filename = os.path.join(tmp_dir, dec_basename)
-    run_single_dec(enc_filename, dec_filename, codec, debug)
+    run_single_dec(enc_filename, dec_filename, codec, logfd, debug)
 
     # 5. decs: scale the decoded video to the reference resolution and
     # pixel format
@@ -627,7 +635,10 @@ def run_single_experiment(
     decs_basename += ".y4m"
     decs_filename = os.path.join(tmp_dir, decs_basename)
     if debug > 0:
-        print("# [%s] scaling file: %s -> %s" % (codec, dec_filename, decs_filename))
+        print(
+            "# [%s] scaling file: %s -> %s" % (codec, dec_filename, decs_filename),
+            file=logfd,
+        )
     ffmpeg_params = [
         "-y",
         "-nostats",
@@ -641,31 +652,31 @@ def run_single_experiment(
         ref_resolution,
         decs_filename,
     ]
-    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = utils.ffmpeg_run(ffmpeg_params, logfd, debug)
     assert retcode == 0, stderr
     # check produced file matches the requirements
     assert ref_resolution == utils.get_resolution(
-        decs_filename
+        decs_filename, logfd, debug
     ), "Error: %s must have resolution: %s (is %s)" % (
         decs_filename,
         ref_resolution,
-        utils.get_resolution(decs_filename),
+        utils.get_resolution(decs_filename, logfd, debug),
     )
     assert ref_pix_fmt == utils.get_pix_fmt(
-        decs_filename
+        decs_filename, logfd, debug
     ), "Error: %s must have pix_fmt: %s (is %s)" % (
         decs_filename,
         ref_pix_fmt,
-        utils.get_pix_fmt(decs_filename),
+        utils.get_pix_fmt(decs_filename, logfd, debug),
     )
 
     # get quality scores
-    psnr_dict = utils.get_psnr(decs_filename, ref_filename, None, debug)
-    ssim_dict = utils.get_ssim(decs_filename, ref_filename, None, debug)
-    vmaf_dict = utils.get_vmaf(decs_filename, ref_filename, None, debug)
+    psnr_dict = utils.get_psnr(decs_filename, ref_filename, None, logfd, debug)
+    ssim_dict = utils.get_ssim(decs_filename, ref_filename, None, logfd, debug)
+    vmaf_dict = utils.get_vmaf(decs_filename, ref_filename, None, logfd, debug)
 
     # get actual bitrate
-    actual_bitrate = utils.get_bitrate(enc_filename)
+    actual_bitrate = utils.get_bitrate(enc_filename, logfd, debug)
 
     # clean up experiments files
     if cleanup > 0:
@@ -835,6 +846,16 @@ def get_options(argv):
         metavar="output-file",
         help="results file",
     )
+    parser.add_argument(
+        "--logfile",
+        action="store",
+        dest="logfile",
+        type=str,
+        default=default_values["logfile"],
+        metavar="log-file",
+        help="log file",
+    )
+
     # do the parsing
     options = parser.parse_args(argv[1:])
     # post-process list-based arguments
@@ -881,7 +902,8 @@ def get_options(argv):
                     for b in options.bitrates
                     if not (isinstance(b, int) or b.isnumeric())
                 ]
-            )
+            ),
+            file=logfd,
         )
         sys.exit(-1)
     # check valid values in options.rcmodes
@@ -900,13 +922,19 @@ def get_options(argv):
 def main(argv):
     # parse options
     options = get_options(argv)
+    # get logfile descriptor
+    if options.logfile is None:
+        logfd = sys.stdout
+    else:
+        logfd = open(options.logfile, "w")
     # get infile/outfile
     assert options.outfile != "-"
     # print results
     if options.debug > 0:
-        print(options)
+        print(f"debug: {options}")
+
     # do something
-    run_experiment(options)
+    run_experiment(options, logfd)
 
 
 if __name__ == "__main__":

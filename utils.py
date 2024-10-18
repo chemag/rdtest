@@ -52,12 +52,13 @@ def run(command, **kwargs):
     default_close_fds = True if sys.platform == "linux2" else False
     close_fds = kwargs.get("close_fds", default_close_fds)
     shell = kwargs.get("shell", True)
+    logfd = kwargs.get("logfd", sys.stdout)
     get_perf_stats = kwargs.get("get_perf_stats", False)
     gnu_time = kwargs.get("gnu_time", False)
     if type(command) is list:
         command = subprocess.list2cmdline(command)
     if debug > 0:
-        print(f"running $ {command}")
+        print(f"$ {command}", file=logfd)
     if dry_run:
         return 0, b"stdout", b"stderr"
     if get_perf_stats:
@@ -97,7 +98,7 @@ def run(command, **kwargs):
         GNU_TIME_BYTES = b"\n\tUser time"
         assert GNU_TIME_BYTES in err, "error: cannot find GNU time info in stderr"
         gnu_time_str = err[err.index(GNU_TIME_BYTES) :].decode("ascii")
-        gnu_time_stats = gnu_time_parse(gnu_time_str)
+        gnu_time_stats = gnu_time_parse(gnu_time_str, logfd, debug)
         other.update(gnu_time_stats)
         err = err[0 : err.index(GNU_TIME_BYTES) :]
     stats = {f"perf_{k}": v for k, v in other.items()}
@@ -134,7 +135,7 @@ GNU_TIME_DEFAULT_KEY_DICT = {
 }
 
 
-def gnu_time_parse(gnu_time_str):
+def gnu_time_parse(gnu_time_str, logfd, debug):
     gnu_time_stats = {}
     for line in gnu_time_str.split("\n"):
         if not line:
@@ -147,7 +148,7 @@ def gnu_time_parse(gnu_time_str):
                 break
         else:
             # unknown key
-            print(f"warn: unknown gnutime line: {line}")
+            print(f"warn: unknown gnutime line: {line}", file=logfd)
             continue
         gnu_time_stats[val] = line[len(key) + 1 :].strip()
     gnu_time_stats["usersystemtime"] = str(
@@ -156,51 +157,51 @@ def gnu_time_parse(gnu_time_str):
     return gnu_time_stats
 
 
-def ffprobe_run(stream_info, infile, debug=0):
+def ffprobe_run(stream_info, infile, logfd, debug=0):
     cmd = ["ffprobe", "-v", "0", "-of", "csv=s=x:p=0", "-select_streams", "v:0"]
     cmd += ["-show_entries", stream_info]
     cmd += [
         infile,
     ]
-    retcode, stdout, stderr, _ = run(cmd, debug=debug)
+    retcode, stdout, stderr, _ = run(cmd, logfd=logfd, debug=debug)
     assert retcode == 0, f"error running {cmd}\nout: {stdout}\nerr: {stderr}"
     return stdout.decode("ascii").strip()
 
 
-def ffmpeg_run(params, debug=0):
+def ffmpeg_run(params, logfd, debug=0):
     cmd = [
         "ffmpeg",
         "-hide_banner",
     ] + params
-    return run(cmd, debug=debug)
+    return run(cmd, logfd=logfd, debug=debug)
 
 
-def get_resolution(infile, debug=0):
-    return ffprobe_run("stream=width,height", infile, debug)
+def get_resolution(infile, logfd, debug=0):
+    return ffprobe_run("stream=width,height", infile, logfd, debug)
 
 
-def get_pix_fmt(infile, debug=0):
-    return ffprobe_run("stream=pix_fmt", infile, debug)
+def get_pix_fmt(infile, logfd, debug=0):
+    return ffprobe_run("stream=pix_fmt", infile, logfd, debug)
 
 
-def get_framerate(infile, debug=0):
-    return ffprobe_run("stream=r_frame_rate", infile, debug)
+def get_framerate(infile, logfd, debug=0):
+    return ffprobe_run("stream=r_frame_rate", infile, logfd, debug)
 
 
-def get_duration(infile, debug=0):
+def get_duration(infile, logfd, debug=0):
     # "stream=duration" fails on webm files
-    return ffprobe_run("format=duration", infile, debug)
+    return ffprobe_run("format=duration", infile, logfd, debug)
 
 
 # returns bitrate in kbps
-def get_bitrate(infile):
+def get_bitrate(infile, logfd, debug):
     size_bytes = os.stat(infile).st_size
-    in_duration_secs = get_duration(infile)
+    in_duration_secs = get_duration(infile, logfd, debug)
     actual_bitrate = 8.0 * size_bytes / float(in_duration_secs)
     return actual_bitrate
 
 
-def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
+def get_psnr(distorted_filename, ref_filename, psnr_log, logfd, debug):
     psnr_log = (
         psnr_log
         if psnr_log is not None
@@ -217,7 +218,7 @@ def get_psnr(distorted_filename, ref_filename, psnr_log, debug):
         "null",
         "-",
     ]
-    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, logfd=logfd, debug=debug)
     return parse_psnr_log(psnr_log)
 
 
@@ -264,7 +265,7 @@ def parse_psnr_log(psnr_log):
     return {f"psnr_{k}": v for k, v in psnr_dict.items()}
 
 
-def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
+def get_ssim(distorted_filename, ref_filename, ssim_log, logfd, debug):
     ssim_log = (
         ssim_log
         if ssim_log is not None
@@ -281,7 +282,7 @@ def get_ssim(distorted_filename, ref_filename, ssim_log, debug):
         "null",
         "-",
     ]
-    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, logfd=logfd, debug=debug)
     return parse_ssim_log(ssim_log)
 
 
@@ -328,12 +329,12 @@ def parse_ssim_log(ssim_log):
     return {f"ssim_{k}": v for k, v in ssim_dict.items()}
 
 
-def ffmpeg_supports_libvmaf(debug):
+def ffmpeg_supports_libvmaf(logfd, debug):
     libvmaf_support = False
     ffmpeg_params = [
         "-filters",
     ]
-    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
+    retcode, stdout, stderr, _ = ffmpeg_run(ffmpeg_params, logfd, debug)
     assert retcode == 0, stderr
     for line in stdout.decode("ascii").splitlines():
         if "libvmaf" in line and "Calculate the VMAF" in line:
@@ -341,13 +342,13 @@ def ffmpeg_supports_libvmaf(debug):
     return libvmaf_support
 
 
-def check_software(debug):
+def check_software(logfd, debug):
     # ensure ffmpeg supports libvmaf
-    libvmaf_support = ffmpeg_supports_libvmaf(debug)
+    libvmaf_support = ffmpeg_supports_libvmaf(logfd, debug)
     assert libvmaf_support, "error: ffmpeg does not support vmaf"
 
 
-def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
+def get_vmaf(distorted_filename, ref_filename, vmaf_json, logfd, debug):
     global VMAF_MODEL
 
     vmaf_json = (
@@ -362,11 +363,12 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
 
     # Allow for an environment variable pointing out the VMAF model
     if os.environ.get("VMAF_MODEL_PATH", None):
-        print("Environment VMAF_PATH override model")
+        print("Environment VMAF_PATH override model", file=logfd)
         VMAF_MODEL = os.environ.get("VMAF_MODEL_PATH")
     if not os.path.isfile(VMAF_MODEL):
         print(
-            f"\n***\nwarn: cannot find VMAF model {VMAF_MODEL}. Using default model\n***"
+            f"\n***\nwarn: cannot find VMAF model {VMAF_MODEL}. Using default model\n***",
+            file=logfd,
         )
 
     ffmpeg_params = [
@@ -380,7 +382,7 @@ def get_vmaf(distorted_filename, ref_filename, vmaf_json, debug):
         "null",
         "-",
     ]
-    retcode, _, stderr, _ = ffmpeg_run(ffmpeg_params, debug)
+    retcode, _, stderr, _ = ffmpeg_run(ffmpeg_params, logfd, debug)
     assert retcode == 0, stderr
     return parse_vmaf_output(vmaf_json, VMAF_MODEL)
 

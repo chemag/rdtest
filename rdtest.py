@@ -524,6 +524,8 @@ def run_single_enc(
         if CODEC_INFO[codec]["codecname"] in ("libx264", "libx265"):
             # no b-frames
             enc_parms += ["-bf", "0"]
+            #enc_parms += ["-x264opts", "keyint=1"]  # force all-intra
+            #enc_parms += ["-x265-params", "keyint=1"]  # force all-intra
         # add preset (if available)
         if CODEC_INFO[codec].get("preset-name", None) is not None:
             preset_name = CODEC_INFO[codec].get("preset-name")
